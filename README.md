@@ -31,7 +31,7 @@
 
 ## ✨ About MEDORA
 
-<img align="right" src="https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif" width="260"/>
+
 
 **MEDORA** is an early-stage medical technology platform designed to simplify how people store and manage their medical data.
 
@@ -117,7 +117,7 @@ Instant synchronization across all devices.
 
 ## 🛠️ Tech Stack
 
-<div align="center">
+<div align="left">
 
 | Category | Technologies |
 |--------|-------------|
