@@ -2,13 +2,22 @@
 
  <div align='center'>
    <img src="./public/logo/medora-full.png" alt="MEDORA Dark Mode" />
-   ```
-    <p>Secure • Organized • User-Controlled Healthcare Data</p>
-   ```
+   <p>Secure • Organized • User-Controlled Healthcare Data</p>
+   
  </div>
 
+<div align="center">
 
----
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-38BDF8?style=for-the-badge&logo=tailwindcss)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary)
+![OpenAI](https://img.shields.io/badge/OpenAI-000000?style=for-the-badge&logo=openai)
+
+</div>
+
 
 # 🏠 Home Page Preview
 
