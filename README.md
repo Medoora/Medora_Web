@@ -1,7 +1,7 @@
 <div align="left">
 
  <div align='center'>
-   <img src="./public/logo/medora-full.png" alt="MEDORA Dark Mode" />
+   <img width="1300" src="./public/logo/medora-full.png" alt="MEDORA Dark Mode" />
    <p>Secure • Organized • User-Controlled Healthcare Data</p>
    
  </div>
