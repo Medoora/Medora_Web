@@ -17,6 +17,7 @@ import {
   deleteReminder,
   autoUpdateMissedReminders,
 } from "@/lib/firebase/service/reminder/service";
+import { Label } from "@/components/ui/label";
 
 export default function Page() {
   const { user } = useAuth();
@@ -86,16 +87,21 @@ const getUrgencyStyle = (appointmentDate: Date) => {
         appointmentDate.getTime() - reminderBefore * 60000
       );
 
-      await createReminder({
-        userId: user.uid,
-        userEmail: user.email!,
-        title,
-        doctor,
-        notes,
-        appointmentDate: Timestamp.fromDate(appointmentDate),
-        reminderBeforeMinutes: reminderBefore,
-        sendAt: Timestamp.fromDate(sendAt),
-      });
+const reminderPayload: any = {
+  userId: user.uid,
+  userEmail: user.email!,
+  title,
+  doctor,
+  appointmentDate: Timestamp.fromDate(appointmentDate),
+  reminderBeforeMinutes: reminderBefore,
+  sendAt: Timestamp.fromDate(sendAt),
+};
+
+if (notes.trim()) {
+  reminderPayload.notes = notes.trim();
+}
+
+await createReminder(reminderPayload);
 
       const updated = await getUserReminders(user.uid);
       setReminders(updated);
@@ -156,7 +162,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
+                    <label className="text-sm font-medium">Title *</label>
                     <Input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
@@ -166,7 +172,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
-                      Doctor / Hospital
+                      Doctor / Hospital *
                     </label>
                     <Input
                       value={doctor}
@@ -178,7 +184,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Date
+                      Date *
                     </label>
                     <Input
                       type="date"
@@ -190,7 +196,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      Time
+                      Time *
                     </label>
                     <Input
                       type="time"
@@ -201,7 +207,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
-                      Reminder Before (minutes)
+                      Reminder Before (minutes) *
                     </label>
                     <Input
                       type="number"
@@ -214,7 +220,7 @@ const getUrgencyStyle = (appointmentDate: Date) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Notes</label>
+                  <Label htmlFor="description">Notes (Optional)</Label>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
