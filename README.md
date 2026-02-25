@@ -46,7 +46,7 @@ Your efforts, time, and creativity help push this project forwardâ€”thank you! ð
 <table width="100%">
   <tr>
     <td align="center" width="50%">
-      <img src="/collaborator/subhro.png" width="160" height="160" style="border-radius:50%" />
+      <img src="./public/collaborator/subhro.png" style="border-radius:50%" />
       <br /><br />
       <b>Subhro</b>
       <br />
@@ -57,7 +57,7 @@ Your efforts, time, and creativity help push this project forwardâ€”thank you! ð
       <a href="https://linkedin.com/in/username" target="_blank">LinkedIn</a>
     </td>
     <td align="center" width="50%">
-      <img src="./contributors/contributor2.png" width="160" height="160" style="border-radius:50%" />
+      <img src="./public/contributors/rohan.png" width="160" height="160" style="border-radius:50%" />
       <br /><br />
       <b>Rohan</b>
       <br />
