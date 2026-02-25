@@ -35,6 +35,63 @@
 
 </div>
 
+
+# 🌟 Wall of Top Contributors
+This wall celebrates the amazing people who have made significant contributions to this project.  
+Your efforts, time, and creativity help push this project forward—thank you! 💙
+
+---
+## 🏆 Top Contributors
+
+<table width="100%">
+  <tr>
+    <td align="center" width="50%">
+      <img src="/collaborator/subhro.png" width="160" height="160" style="border-radius:50%" />
+      <br /><br />
+      <b>Subhro</b>
+      <br />
+      <sub>Lead Developer</sub>
+      <br /><br />
+      <a href="https://github.com/username" target="_blank">GitHub</a> •
+      <a href="https://instagram.com/username" target="_blank">Instagram</a> •
+      <a href="https://linkedin.com/in/username" target="_blank">LinkedIn</a>
+    </td>
+    <td align="center" width="50%">
+      <img src="./contributors/contributor2.png" width="160" height="160" style="border-radius:50%" />
+      <br /><br />
+      <b>Rohan</b>
+      <br />
+      <sub>Core Contributor</sub>
+      <br /><br />
+      <a href="https://github.com/username" target="_blank">GitHub</a> •
+      <a href="https://instagram.com/username" target="_blank">Instagram</a> •
+      <a href="https://linkedin.com/in/username" target="_blank">LinkedIn</a>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 💡 How to Get Featured Here
+
+Want to see your face on this wall?  
+Here’s how you can make it happen:
+
+- Contribute meaningful code or documentation
+- Help with bug fixes or feature improvements
+- Actively participate in discussions and reviews
+- Maintain high-quality commits and consistency
+
+---
+
+## ❤️ Appreciation
+
+Every contribution—big or small—matters.  
+This wall is our way of saying **thank you** for being part of the journey 🚀
+
+If you think someone deserves a spot here, feel free to open a PR!
+
+---
 ## ✨ About MEDORA
 
 
