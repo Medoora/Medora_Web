@@ -1,9 +1,17 @@
 
 import jsPDF from 'jspdf';
-import { addMedoraHeader, addSectionHeader, addFooter, MEDORA_COLORS } from '@/utils/pdf-utils';
+import autoTable from 'jspdf-autotable';
 import { PatientProfileData } from '@/lib/firebase/service/patients/service';
+import { addMedoraHeader, addSectionHeader, addFooter, MEDORA_COLORS } from '@/utils/pdf-utils';
 
-export const generatePersonalInfoPDF = (data: PatientProfileData) => {
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: { finalY: number };
+  }
+}
+
+export const generatePersonalInfoPDF = async (data: PatientProfileData) => {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -15,7 +23,7 @@ export const generatePersonalInfoPDF = (data: PatientProfileData) => {
   const contentWidth = pageWidth - (margin * 2);
 
   // Add Header
-  let y = addMedoraHeader(
+  let y = await addMedoraHeader(
     pdf, 
     'Personal Information', 
     'Demographics & Emergency Contacts',
@@ -85,16 +93,23 @@ export const generatePersonalInfoPDF = (data: PatientProfileData) => {
   y += 35;
 
   // Documents Section
-  if (data.personalInfo.documents.length > 0) {
+  if (data.personalInfo.documents && data.personalInfo.documents.length > 0) {
+    if (y > 250) {
+      pdf.addPage();
+      y = margin;
+      y = await addMedoraHeader(pdf, 'Personal Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+      y += 20;
+    }
+
     y = addSectionHeader(pdf, y, 'Uploaded Documents', MEDORA_COLORS.success);
 
     const documentsBody = data.personalInfo.documents.map(doc => [
       doc.type.replace(/-/g, ' ').toUpperCase(),
       doc.number || 'N/A',
-      new Date(doc.uploadedAt).toLocaleDateString()
+      doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'
     ]);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -105,13 +120,13 @@ export const generatePersonalInfoPDF = (data: PatientProfileData) => {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    y = pdf.lastAutoTable.finalY + 10;
+    y = (pdf as any).lastAutoTable.finalY + 10;
   }
 
-  addFooter(pdf, 1);
+  const totalPages = pdf.internal.pages.length - 1;
+  addFooter(pdf, totalPages);
 
-  // Save PDF
-  const fileName = `Medora_Personal_Info_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const fileName = `Medora_Personal_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
   pdf.save(fileName);
   
   return fileName;

@@ -1,4 +1,5 @@
 // lib/pdf/pdf-utils.ts
+import { LOGO } from '@/public/logo/logo';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -40,7 +41,67 @@ export const MEDORA_COLORS: PDFColors = {
   }
 };
 
-export const addMedoraHeader = (
+export const addMedoraLogo = async (
+  pdf: jsPDF,
+  x: number,
+  y: number,
+  width: number = 25,
+  height: number = 8
+): Promise<void> => {
+  try {
+    // Fix the URL path - remove '/public' from the path
+    const logoUrl = "/logo/logo.png"; // This will look in public/logo/logo.png
+
+    const response = await fetch(logoUrl);
+    const blob = await response.blob();
+
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        try {
+          pdf.addImage(
+            reader.result as string,
+            'PNG',
+            x,
+            y,
+            width,
+            height
+          );
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Failed to load logo:', error);
+
+    // Fallback to text logo
+    pdf.setFontSize(20);
+    pdf.setTextColor(
+      MEDORA_COLORS.primary[0],
+      MEDORA_COLORS.primary[1],
+      MEDORA_COLORS.primary[2]
+    );
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('MEDORA', x, y + 6);
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(
+      MEDORA_COLORS.text.light[0],
+      MEDORA_COLORS.text.light[1],
+      MEDORA_COLORS.text.light[2]
+    );
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Health Assistant', x, y + 12);
+  }
+};
+
+export const addMedoraHeader = async (
   pdf: jsPDF, 
   title: string, 
   subtitle?: string,
@@ -49,19 +110,8 @@ export const addMedoraHeader = (
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 20;
 
-  // Add Medora Logo
-  pdf.setFillColor(MEDORA_COLORS.primary[0], MEDORA_COLORS.primary[1], MEDORA_COLORS.primary[2]);
-  pdf.rect(margin, margin, 8, 8, 'F');
-  
-  pdf.setFontSize(20);
-  pdf.setTextColor(MEDORA_COLORS.primary[0], MEDORA_COLORS.primary[1], MEDORA_COLORS.primary[2]);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('MEDORA', margin + 12, margin + 7);
-  
-  pdf.setFontSize(10);
-  pdf.setTextColor(MEDORA_COLORS.text.light[0], MEDORA_COLORS.text.light[1], MEDORA_COLORS.text.light[2]);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('Health Assistant', margin + 12, margin + 12);
+  // Add Medora Logo (actual image instead of colored rectangle)
+  await addMedoraLogo(pdf, margin, margin, 25, 8);
 
   // Decorative line
   pdf.setDrawColor(MEDORA_COLORS.primary[0], MEDORA_COLORS.primary[1], MEDORA_COLORS.primary[2]);

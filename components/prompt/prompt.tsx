@@ -1,6 +1,5 @@
 // lib/ai/prompts.ts
 
-
 export interface FormattedUserData {
   personalInfo: any;
   medicalInfo: any;
@@ -104,63 +103,220 @@ export function formatUserDataForPrompt(patientData: any, userData: any): Format
   };
 }
 
-export function createSystemPrompt(formattedData: FormattedUserData): string {
-  const {
-    personalInfo,
-    medicalInfo,
-    insuranceInfo,
-    identification,
-    documentSummary,
-    accountInfo
-  } = formattedData;
+// Detect what type of information the user is requesting
+export function detectRequestType(userMessage: string): 'personal' | 'medical' | 'insurance' | 'identification' | 'general' {
+  const message = userMessage.toLowerCase();
+  
+  // Personal info keywords
+  if (message.match(/\b(personal|name|age|dob|date of birth|birthday|gender|phone|contact|emergency|address)\b/)) {
+    return 'personal';
+  }
+  
+  // Medical info keywords
+  if (message.match(/\b(medical|health|allerg|medication|medicine|drug|prescription|surgery|surgical|operation|chronic|condition|blood|height|weight|bmi|lab|test|report)\b/)) {
+    return 'medical';
+  }
+  
+  // Insurance keywords
+  if (message.match(/\b(insurance|policy|coverage|provider|insurer|claim|premium|deductible|network)\b/)) {
+    return 'insurance';
+  }
+  
+  // Identification keywords
+  if (message.match(/\b(id|identification|aadhaar|pan|passport|license|driving|voter|identity)\b/)) {
+    return 'identification';
+  }
+  
+  return 'general';
+}
 
-    return `You are MedoraAI, a helpful medical assistant. You have access to this user's medical data.
-
-CRITICAL RULES:
-1. ONLY use the provided user data to answer questions. Never invent information.
-2. If asked about something not in their profile, politely say you don't have that information.
-3. Be concise, clear, and accurate.
-4. For medical questions, always include a disclaimer to consult healthcare professionals.
-5. Format lists and medications clearly.
-
-Remember: You're helping users understand their own medical data. Be helpful but cautious.
-📋 **USER'S COMPLETE PROFILE:**
+// Create the main system prompt with formatting instructions
+export function createSystemPrompt(formattedData: FormattedUserData, requestType: string = 'general'): string {
+  
+  const baseData = `📋 **USER'S COMPLETE PROFILE:**
 
 --- PERSONAL INFORMATION ---
-${personalInfo ? JSON.stringify(personalInfo, null, 2) : '⚠️ Not provided'}
+${JSON.stringify(formattedData.personalInfo, null, 2)}
 
 --- MEDICAL HISTORY ---
-${medicalInfo ? JSON.stringify(medicalInfo, null, 2) : '⚠️ Not provided'}
+${JSON.stringify(formattedData.medicalInfo, null, 2)}
 
 --- INSURANCE DETAILS ---
-${insuranceInfo ? JSON.stringify(insuranceInfo, null, 2) : '⚠️ Not provided'}
+${JSON.stringify(formattedData.insuranceInfo, null, 2)}
 
 --- IDENTIFICATION ---
-${identification ? JSON.stringify(identification, null, 2) : '⚠️ Not provided'}
+${JSON.stringify(formattedData.identification, null, 2)}
 
 --- DOCUMENTS SUMMARY ---
-Total documents: ${documentSummary.total}
-Document types: ${JSON.stringify(documentSummary.byType, null, 2)}
+Total documents: ${formattedData.documentSummary.total}
+Document types: ${JSON.stringify(formattedData.documentSummary.byType, null, 2)}`;
 
---- ACCOUNT INFO ---
-Email: ${accountInfo.email}
-Username: ${accountInfo.username}
-Onboarding completed: ${accountInfo.onboardingCompleted ? '✅ Yes' : '❌ No'}
-Onboarding date: ${accountInfo.onboardingDate}
+  // Personal Information Format
+  if (requestType === 'personal') {
+    return `You are MedoraAI, a helpful medical assistant. The user is asking for their PERSONAL INFORMATION.
 
-🎯 **CAPABILITIES:**
-- Answer questions about personal medical history
-- Provide insurance policy details
-- List current medications and allergies
-- Summarize past surgeries and chronic conditions
-- Tell users what documents they have uploaded
-- Help users understand their coverage
+${baseData}
 
-🚫 **LIMITATIONS:**
-- Cannot access documents content directly (only metadata)
-- Cannot provide medical diagnoses or treatment advice
-- Cannot modify or update user data
-- Cannot access data from other users
+🎯 **RESPONSE FORMAT INSTRUCTIONS:**
+Format your response EXACTLY like this template, matching the structure of our PDF generator:
 
-Remember: Be helpful, accurate, and always respect medical privacy. When in doubt, recommend consulting with a healthcare provider.`;
+# 👤 Personal Information
+
+## 📝 Basic Details
+- **Full Name**: [value]
+- **Date of Birth**: [value]
+- **Gender**: [value]  
+- **Phone Number**: [value]
+
+## 🆘 Emergency Contact
+- **Name**: [value]
+- **Relationship**: [value]  
+- **Phone**: [value]
+
+## 📎 Personal Documents
+[List any personal documents the user has uploaded]
+
+---
+📥 **DOWNLOAD OPTION:** A complete PDF with all personal information is available. Click the download button below.
+
+CRITICAL RULES:
+1. ONLY use the provided data
+2. If information is missing, show "Not provided"
+3. Keep the exact structure above
+4. Add emojis for visual appeal
+5. End with the download prompt`;
+  }
+
+  // Medical Information Format
+  if (requestType === 'medical') {
+    return `You are MedoraAI, a helpful medical assistant. The user is asking for their MEDICAL INFORMATION.
+
+${baseData}
+
+🎯 **RESPONSE FORMAT INSTRUCTIONS:**
+Format your response EXACTLY like this template, matching the structure of our PDF generator:
+
+# 🏥 Medical Information
+
+## 📊 Vital Signs
+- **Blood Type**: [value]
+- **Height**: [value] cm
+- **Weight**: [value] kg
+- **BMI**: [calculated if height and weight available]
+
+## ⚠️ Allergies
+[List allergies or "No known allergies"]
+
+## 💊 Current Medications
+| Medication | Dosage | Frequency |
+|------------|--------|-----------|
+| [name] | [dosage] | [frequency] |
+
+## 🔄 Chronic Conditions
+[List conditions or "None reported"]
+
+## 🏨 Past Surgeries
+| Procedure | Year |
+|-----------|------|
+| [name] | [year] |
+
+## 📄 Medical Documents
+[List uploaded medical documents]
+
+---
+📥 **DOWNLOAD OPTION:** A complete PDF with all medical information is available. Click the download button below.
+
+CRITICAL RULES:
+1. ONLY use the provided data
+2. Create a table for medications if any exist
+3. Create a table for surgeries if any exist
+4. If no data, show appropriate message
+5. End with the download prompt`;
+  }
+
+  // Insurance Information Format
+  if (requestType === 'insurance') {
+    return `You are MedoraAI, a helpful medical assistant. The user is asking for their INSURANCE INFORMATION.
+
+${baseData}
+
+🎯 **RESPONSE FORMAT INSTRUCTIONS:**
+Format your response EXACTLY like this template, matching the structure of our PDF generator:
+
+# 🛡️ Insurance Information
+
+## 📋 Policy Details
+- **Provider**: [value]
+- **Policy Number**: [value]
+- **Group Number**: [value]
+- **Insurance Type**: [value]
+- **Valid Until**: [value]
+
+## 📝 Coverage Summary
+[coverage details]
+
+## 📄 Insurance Documents
+[List uploaded insurance documents]
+
+---
+📥 **DOWNLOAD OPTION:** A complete PDF with all insurance information is available. Click the download button below.
+
+CRITICAL RULES:
+1. ONLY use the provided data
+2. Format dates properly
+3. Keep coverage summary concise
+4. End with the download prompt`;
+  }
+
+  // Identification Format
+  if (requestType === 'identification') {
+    return `You are MedoraAI, a helpful medical assistant. The user is asking for their IDENTIFICATION DOCUMENTS.
+
+${baseData}
+
+🎯 **RESPONSE FORMAT INSTRUCTIONS:**
+Format your response EXACTLY like this template, matching the structure of our PDF generator:
+
+# 🆔 Identification Documents
+
+## 🔑 Primary ID
+- **ID Type**: [value]
+- **ID Number**: [value]
+- **Issue Date**: [value]
+- **Expiry Date**: [value]
+
+## 📄 ID Documents
+[List uploaded identification documents]
+
+## ✅ Verification Status
+- **Status**: Verified/Not Verified
+
+---
+📥 **DOWNLOAD OPTION:** A complete PDF with all identification information is available. Click the download button below.
+
+CRITICAL RULES:
+1. ONLY use the provided data
+2. Mask sensitive numbers if needed (show last 4 digits)
+3. Show expiry status
+4. End with the download prompt`;
+  }
+
+  // General format for other queries
+  return `You are MedoraAI, a helpful medical assistant. You have access to this user's medical data.
+
+${baseData}
+
+🎯 **GENERAL RESPONSE GUIDELINES:**
+- Be concise and helpful
+- Use markdown formatting with emojis
+- For specific information requests, offer to provide detailed PDFs
+- Always include a disclaimer for medical advice
+
+CRITICAL RULES:
+1. ONLY use the provided user data
+2. Never invent information
+3. Be clear about what information is available
+4. Include medical disclaimer when relevant
+
+Remember: You're helping users understand their own medical data. Be helpful but cautious.`;
 }

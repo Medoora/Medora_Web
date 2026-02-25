@@ -1,9 +1,17 @@
-// lib/pdf/identification-pdf.ts
+
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PatientProfileData } from '@/lib/firebase/service/patients/service';
 import { addMedoraHeader, addSectionHeader, addFooter, MEDORA_COLORS } from '@/utils/pdf-utils';
 
-export const generateIdentificationPDF = (data: PatientProfileData) => {
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: { finalY: number };
+  }
+}
+
+export const generateIdentificationPDF = async (data: PatientProfileData) => {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -15,7 +23,7 @@ export const generateIdentificationPDF = (data: PatientProfileData) => {
   const contentWidth = pageWidth - (margin * 2);
 
   // Add Header
-  let y = addMedoraHeader(
+  let y = await addMedoraHeader(
     pdf, 
     'Identification Documents', 
     'Government ID & Verification Records',
@@ -45,8 +53,12 @@ export const generateIdentificationPDF = (data: PatientProfileData) => {
   pdf.text('ID Number:', leftCol, detailY + 8);
   
   pdf.setFont('helvetica', 'normal');
-  pdf.text(data.identification.type.replace('-', ' ').toUpperCase(), leftCol + 30, detailY);
-  pdf.text(data.identification.number, leftCol + 30, detailY + 8);
+  pdf.text(data.identification.type?.replace('-', ' ').toUpperCase() || 'Not provided', leftCol + 30, detailY);
+  
+  // Mask ID number for privacy (show last 4 digits)
+  const idNumber = data.identification.number || 'Not provided';
+  const maskedNumber = idNumber.length > 4 ? `XXXX${idNumber.slice(-4)}` : idNumber;
+  pdf.text(maskedNumber, leftCol + 30, detailY + 8);
 
   // Right column
   pdf.setFont('helvetica', 'bold');
@@ -54,22 +66,22 @@ export const generateIdentificationPDF = (data: PatientProfileData) => {
   pdf.text('Expiry Date:', rightCol, detailY + 8);
 
   pdf.setFont('helvetica', 'normal');
-  pdf.text(new Date(data.identification.issueDate).toLocaleDateString(), rightCol + 30, detailY);
-  pdf.text(new Date(data.identification.expiryDate).toLocaleDateString(), rightCol + 30, detailY + 8);
+  pdf.text(data.identification.issueDate ? new Date(data.identification.issueDate).toLocaleDateString() : 'Not provided', rightCol + 30, detailY);
+  pdf.text(data.identification.expiryDate ? new Date(data.identification.expiryDate).toLocaleDateString() : 'Not provided', rightCol + 30, detailY + 8);
 
   y += 45;
 
   // ID Documents
-  if (data.identification.documents.length > 0) {
+  if (data.identification.documents && data.identification.documents.length > 0) {
     y = addSectionHeader(pdf, y, 'Uploaded ID Documents', MEDORA_COLORS.success);
 
     const documentsBody = data.identification.documents.map(doc => [
       doc.type.replace(/-/g, ' ').toUpperCase(),
-      doc.number || 'N/A',
-      new Date(doc.uploadedAt).toLocaleDateString()
+      doc.number ? `XXXX${doc.number.slice(-4)}` : 'N/A',
+      doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'
     ]);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -80,14 +92,14 @@ export const generateIdentificationPDF = (data: PatientProfileData) => {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    y = pdf.lastAutoTable.finalY + 10;
+    y = (pdf as any).lastAutoTable.finalY + 10;
   }
 
   // Verification Status
   if (y > 250) {
     pdf.addPage();
     y = margin;
-    addMedoraHeader(pdf, 'Identification (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+    y = await addMedoraHeader(pdf, 'Identification (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
     y += 20;
   }
 
@@ -121,7 +133,8 @@ export const generateIdentificationPDF = (data: PatientProfileData) => {
   pdf.text('This document contains sensitive personal information.', margin + 35, y + 7);
   pdf.text('Handle with care and store securely.', margin + 5, y + 14);
 
-  addFooter(pdf, pdf.internal.pages.length);
+  const totalPages = pdf.internal.pages.length - 1;
+  addFooter(pdf, totalPages);
 
   const fileName = `Medora_Identification_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
   pdf.save(fileName);

@@ -16,14 +16,34 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
+import {
+  generatePersonalInfoPDF,
+  generateMedicalInfoPDF,
+  generateIdentificationPDF, 
+  generateInsuranceInfoPDF
+} from '@/components/chat-bot/pdf/index'
+import { PatientProfileData, PatientService } from '@/lib/firebase/service/patients/service';
 interface ChatMessageProps {
   message: string;
   isUser: boolean;
   onDownloadPDF?: () => void;
+  onDownloadPersonal?: () => void;
+  onDownloadMedical?: () => void;
+  onDownloadInsurance?: () => void;
+  onDownloadIdentification?: () => void;
+  showDownloadButton?: boolean | null;
 }
 
-const ChatMessage = ({ message, isUser, onDownloadPDF }: ChatMessageProps) => {
+const ChatMessage = ({ 
+  message, 
+  isUser, 
+  onDownloadPDF,
+  onDownloadPersonal,
+  onDownloadMedical,
+  onDownloadInsurance,
+  onDownloadIdentification,
+  showDownloadButton = false
+}: ChatMessageProps) => {
   const messageRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -34,18 +54,9 @@ const ChatMessage = ({ message, isUser, onDownloadPDF }: ChatMessageProps) => {
           ? "bg-primary text-primary-foreground" 
           : "bg-muted"
       )}>
-        {!isUser && message && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -bottom-7 left-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={onDownloadPDF}
-            title="Download as PDF"
-          >
-            <Download className="h-3 w-3" />
-          </Button>
-        )}
+      
         
+        {/* Message content */}
         {isUser ? (
           <p className="text-sm whitespace-pre-wrap">{message}</p>
         ) : (
@@ -57,6 +68,7 @@ const ChatMessage = ({ message, isUser, onDownloadPDF }: ChatMessageProps) => {
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
+                    
                     <SyntaxHighlighter
                     //@ts-ignore
                       style={vscDarkPlus}
@@ -101,6 +113,80 @@ const ChatMessage = ({ message, isUser, onDownloadPDF }: ChatMessageProps) => {
             </ReactMarkdown>
           </div>
         )}
+
+ <div className='flex items-center gap-1'>
+  {/* General PDF Download Button - Always shows for assistant messages */}
+  {!isUser && onDownloadPDF && (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="absolute -bottom-8 left-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+      onClick={onDownloadPDF}
+      title="Download this chat as PDF"
+    >
+      <Download className="h-3 w-3" />
+    </Button>
+  )}
+  
+  {/* Section-specific PDF Buttons - Only show when user explicitly asked */}
+  {!isUser && showDownloadButton && (
+    <div className="absolute -bottom-8 left-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {onDownloadPersonal && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-full bg-blue-100 hover:bg-blue-200 border-0"
+          onClick={onDownloadPersonal}
+          title="Download Personal Information"
+        >
+          <svg className="h-3 w-3 text-blue-700" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="currentColor"/>
+          </svg>
+        </Button>
+      )}
+      {onDownloadMedical && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-full bg-green-100 hover:bg-green-200 border-0"
+          onClick={onDownloadMedical}
+          title="Download Medical History"
+        >
+          <svg className="h-3 w-3 text-green-700" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 8H17V4H3V19H20V8ZM7 16H5V14H7V16ZM7 12H5V10H7V12ZM7 8H5V6H7V8ZM11 16H9V14H11V16ZM11 12H9V10H11V12ZM11 8H9V6H11V8ZM16 19H13V17H16V19ZM16 15H13V13H16V15ZM16 11H13V9H16V11ZM19 19H17V17H19V19ZM19 15H17V13H19V15ZM19 11H17V9H19V11Z" fill="currentColor"/>
+          </svg>
+        </Button>
+      )}
+      {onDownloadInsurance && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-full bg-purple-100 hover:bg-purple-200 border-0"
+          onClick={onDownloadInsurance}
+          title="Download Insurance Information"
+        >
+          <svg className="h-3 w-3 text-purple-700" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 11.99H19C18.47 16.11 15.72 19.78 12 20.93V12H5V6.3L12 3.19V11.99Z" fill="currentColor"/>
+          </svg>
+        </Button>
+      )}
+      {onDownloadIdentification && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-full bg-amber-100 hover:bg-amber-200 border-0"
+          onClick={onDownloadIdentification}
+          title="Download Identification Documents"
+        >
+          <svg className="h-3 w-3 text-amber-700" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 18H4V6H20V18ZM18 9H6V7H18V9ZM18 13H6V11H18V13ZM18 17H6V15H18V17Z" fill="currentColor"/>
+          </svg>
+        </Button>
+      )}
+    </div>
+  )}
+</div>
+
       </div>
     </div>
   );
@@ -114,12 +200,28 @@ interface AIChatBoxProps {
 const AIChatBox = ({ isOpen, onClose }: AIChatBoxProps) => {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+  const [patientProfile, setPatientProfile] = useState<PatientProfileData | null>(null)
+
+  //fetch patients data
+ useEffect(() => {
+  if (user) {
+    PatientService.getPatientProfile(user.uid)
+      .then((profile: PatientProfileData | null) => {
+        setPatientProfile(profile);
+      })
+      .catch((error) => {
+        console.error('Error fetching patient profile:', error);
+        setPatientProfile(null);
+      });
+  } else {
+    setPatientProfile(null);
+  }
+}, [user]);
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `# 👋 Welcome to Medora AI Assistant!
+      content: `# 👋 Welcome I'm Meditalk👾
 
 I'm here to help you with your **medical history, insurance details, and documents**. Here's what I can do for you:
 
@@ -193,8 +295,42 @@ I'm here to help you with your **medical history, insurance details, and documen
     if (message) {
       generatePDF(message.content, messageId);
     }
-  };
+  }; 
+  // PDF download handler using your template 
+   const handleDownloadPersonalInfo = () => {
+      if(patientProfile) {
+         generatePersonalInfoPDF(patientProfile)
+      } else {
+         console.log(`No patient profile available`)
+      }
+   }
 
+   // PDF for medical temp 
+   const handleDownloadMedicalInfo = () => {
+     if(patientProfile) {
+       generateMedicalInfoPDF(patientProfile)
+     } else {
+        console.log('no patient medical data')
+     }
+   }
+
+   //PDF for insurance data 
+   const handleDownloadInsuranceData = () => {
+     if(patientProfile) {
+       generateInsuranceInfoPDF(patientProfile)
+     } else {
+        console.log('no patient insurance data')
+     }
+   }
+
+   //PDF for identification temp
+    const handleDownloadIdentification = () => { 
+      if(patientProfile) {
+         generateIdentificationPDF(patientProfile)
+      } else {
+         console.log('No patient id data')
+      }
+    }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user) return;
@@ -332,19 +468,64 @@ I'm here to help you with your **medical history, insurance details, and documen
 
         {/* Messages */}
         <ScrollArea className={cn(
-          "px-4 pt-0 pb-5 ",
+          "px-4 pt-4 pb-5 ",
           showModelSelector ? "h-[calc(100vh-280px)]" : "h-[calc(100vh-200px)]"
         )}>
           <div className="space-y-4">
-            {messages.map((message) => (
-              <ChatMessage 
-                key={message.id} 
-                message={message.content} 
-                isUser={message.role === 'user'} 
-                onDownloadPDF={() => handleDownloadPDF(message.id)}
-              />
-            ))}
-            
+            {messages.map((message) => {
+      // Check if this is an assistant message (not user)
+      const isAssistant = message.role === 'assistant';
+      
+      // Determine which specific download buttons to show based on content
+      const showPersonalButton = isAssistant && 
+        patientProfile !== null && 
+        (message.content.toLowerCase().includes('personal information') ||
+         message.content.toLowerCase().includes('personal info') ||
+         message.content.toLowerCase().includes('demographic') ||
+         message.content.toLowerCase().includes('emergency contact'));
+
+      const showMedicalButton = isAssistant && 
+        patientProfile !== null && 
+        (message.content.toLowerCase().includes('medical history') ||
+         message.content.toLowerCase().includes('medical information') ||
+         message.content.toLowerCase().includes('health record') ||
+         message.content.toLowerCase().includes('allergies') ||
+         message.content.toLowerCase().includes('medications') ||
+         message.content.toLowerCase().includes('vital signs') ||
+         message.content.toLowerCase().includes('blood type'));
+
+      const showInsuranceButton = isAssistant && 
+        patientProfile !== null && 
+        (message.content.toLowerCase().includes('insurance') ||
+         message.content.toLowerCase().includes('policy') ||
+         message.content.toLowerCase().includes('coverage') ||
+         message.content.toLowerCase().includes('provider'));
+
+      const showIdentificationButton = isAssistant && 
+        patientProfile !== null && 
+        (message.content.toLowerCase().includes('identification') ||
+         message.content.toLowerCase().includes('id card') ||
+         message.content.toLowerCase().includes('aadhaar') ||
+         message.content.toLowerCase().includes('passport') ||
+         message.content.toLowerCase().includes('driving license'));
+
+      // Always show general download button for assistant messages
+      const showGeneralDownload = isAssistant && message.content.length > 0;
+
+      return (
+        <ChatMessage
+          key={message.id}
+          message={message.content}
+          isUser={message.role === 'user'}
+          onDownloadPDF={showGeneralDownload ? () => handleDownloadPDF(message.id) : undefined}
+          onDownloadPersonal={showPersonalButton ? handleDownloadPersonalInfo : undefined}
+          onDownloadMedical={showMedicalButton ? handleDownloadMedicalInfo : undefined}
+          onDownloadInsurance={showInsuranceButton ? handleDownloadInsuranceData : undefined}
+          onDownloadIdentification={showIdentificationButton ? handleDownloadIdentification : undefined}
+          showDownloadButton={showPersonalButton || showMedicalButton || showInsuranceButton || showIdentificationButton}
+        />
+      );
+    })}
             {isLoading && messages[messages.length - 1]?.content === '' && (
               <div className="flex justify-start mb-4">
                 <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-2">
@@ -363,7 +544,7 @@ I'm here to help you with your **medical history, insurance details, and documen
             )}
 
             <div ref={messagesEndRef} />
-          </div>
+          </div> 
         </ScrollArea>
 
         {/* Input */}

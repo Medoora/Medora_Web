@@ -1,9 +1,21 @@
-// lib/pdf/insurance-info-pdf.ts
+
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PatientProfileData } from '@/lib/firebase/service/patients/service';
 import { addMedoraHeader, addSectionHeader, addFooter, MEDORA_COLORS } from '@/utils/pdf-utils';
 
-export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+}
+
+export const generateInsuranceInfoPDF = async (data: PatientProfileData) => {
+  // Create new PDF document
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -14,8 +26,8 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const contentWidth = pageWidth - (margin * 2);
 
-  // Add Header
-  let y = addMedoraHeader(
+  // Add Header (await since it's async now)
+  let y = await addMedoraHeader(
     pdf, 
     'Insurance Information', 
     'Coverage Details & Policy Documents',
@@ -47,10 +59,12 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
   pdf.text('Insurance Type:', leftCol, detailY + 24);
 
   pdf.setFont('helvetica', 'normal');
-  pdf.text(data.insuranceInfo.providerName, leftCol + 30, detailY);
-  pdf.text(data.insuranceInfo.policyNumber, leftCol + 30, detailY + 8);
-  pdf.text(data.insuranceInfo.groupNumber || 'N/A', leftCol + 30, detailY + 16);
-  pdf.text(data.insuranceInfo.insuranceType.replace('-', ' ').toUpperCase(), leftCol + 30, detailY + 24);
+  pdf.text(data.insuranceInfo.providerName || 'Not provided', leftCol + 30, detailY);
+  pdf.text(data.insuranceInfo.policyNumber || 'Not provided', leftCol + 30, detailY + 8);
+  pdf.text(data.insuranceInfo.groupNumber || 'Not provided', leftCol + 30, detailY + 16);
+  
+  const insuranceType = data.insuranceInfo.insuranceType?.replace('-', ' ').toUpperCase() || 'Not specified';
+  pdf.text(insuranceType, leftCol + 30, detailY + 24);
 
   // Right column
   pdf.setFont('helvetica', 'bold');
@@ -58,25 +72,32 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
   pdf.text('Coverage:', rightCol, detailY + 8);
 
   pdf.setFont('helvetica', 'normal');
-  pdf.text(new Date(data.insuranceInfo.validUntil).toLocaleDateString(), rightCol + 30, detailY);
+  
+  // Format date
+  const validUntil = data.insuranceInfo.validUntil 
+    ? new Date(data.insuranceInfo.validUntil).toLocaleDateString() 
+    : 'Not specified';
+  pdf.text(validUntil, rightCol + 30, detailY);
   
   // Coverage details with word wrap
-  const coverageLines = pdf.splitTextToSize(data.insuranceInfo.coverageDetails || 'Standard coverage', 70);
+  const coverageText = data.insuranceInfo.coverageDetails || 'Standard coverage';
+  const coverageLines = pdf.splitTextToSize(coverageText, 70);
   pdf.text(coverageLines, rightCol + 30, detailY + 8);
 
   y += 55;
 
   // Insurance Documents
-  if (data.insuranceInfo.documents.length > 0) {
+  if (data.insuranceInfo.documents && data.insuranceInfo.documents.length > 0) {
     y = addSectionHeader(pdf, y, 'Insurance Documents', MEDORA_COLORS.success);
 
     const documentsBody = data.insuranceInfo.documents.map(doc => [
       doc.type.replace(/-/g, ' ').toUpperCase(),
       doc.number || 'N/A',
-      new Date(doc.uploadedAt).toLocaleDateString()
+      doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'
     ]);
 
-    pdf.autoTable({
+    // Use autoTable with proper initialization
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -87,14 +108,16 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    y = pdf.lastAutoTable.finalY + 10;
+    // Get the final Y position after the table
+    y = (pdf as any).lastAutoTable.finalY + 10;
   }
 
   // Coverage Summary
   if (y > 250) {
     pdf.addPage();
     y = margin;
-    addMedoraHeader(pdf, 'Insurance Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+    // On new page, add header again but with await
+    y = await addMedoraHeader(pdf, 'Insurance Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
     y += 20;
   }
 
@@ -106,10 +129,8 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
   pdf.setFontSize(9);
   pdf.setTextColor(MEDORA_COLORS.text.primary[0], MEDORA_COLORS.text.primary[1], MEDORA_COLORS.text.primary[2]);
   
-  const summaryLines = pdf.splitTextToSize(
-    data.insuranceInfo.coverageDetails || 'Standard insurance coverage applies as per policy terms and conditions.',
-    contentWidth - 10
-  );
+  const summaryText = data.insuranceInfo.coverageDetails || 'Standard insurance coverage applies as per policy terms and conditions.';
+  const summaryLines = pdf.splitTextToSize(summaryText, contentWidth - 10);
   pdf.text(summaryLines, margin + 5, y + 7);
 
   y += 30;
@@ -128,9 +149,12 @@ export const generateInsuranceInfoPDF = (data: PatientProfileData) => {
   pdf.text('Please verify coverage details with your insurance provider.', margin + 25, y + 7);
   pdf.text('Keep your insurance card and documents readily accessible.', margin + 5, y + 14);
 
-  addFooter(pdf, pdf.internal.pages.length);
+  // Get total pages
+  const totalPages = pdf.internal.pages.length - 1;
+  addFooter(pdf, totalPages);
 
-  const fileName = `Medora_Insurance_Info_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
+  // Save the PDF
+  const fileName = `Medora_Insurance_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
   pdf.save(fileName);
   
   return fileName;
