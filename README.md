@@ -46,22 +46,22 @@ Your efforts, time, and creativity help push this project forward—thank you! �
 <table width="100%">
   <tr>
     <td align="center" width="50%">
-      <img src="./public/collaborator/subhro.png" style="border-radius:50%" />
+      <img src="./public/collaborator/subhro.png" height='400' style="border-radius:50%" />
       <br /><br />
       <b>Subhro</b>
       <br />
-      <sub>Lead Developer</sub>
+      <sub>Lead Developer(Full-Stack)</sub>
       <br /><br />
       <a href="https://github.com/username" target="_blank">GitHub</a> •
       <a href="https://instagram.com/username" target="_blank">Instagram</a> •
       <a href="https://linkedin.com/in/username" target="_blank">LinkedIn</a>
     </td>
     <td align="center" width="50%">
-      <img src="./public/contributors/rohan.png" width="160" height="160" style="border-radius:50%" />
+      <img src="./public/collaborator/rohan.png" height='400' style="border-radius:50%" />
       <br /><br />
       <b>Rohan</b>
       <br />
-      <sub>Core Contributor</sub>
+      <sub>Core Contributor(Full-Stack)</sub>
       <br /><br />
       <a href="https://github.com/username" target="_blank">GitHub</a> •
       <a href="https://instagram.com/username" target="_blank">Instagram</a> •
