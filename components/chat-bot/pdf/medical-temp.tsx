@@ -1,9 +1,17 @@
 
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PatientProfileData } from '@/lib/firebase/service/patients/service';
 import { addMedoraHeader, addSectionHeader, addFooter, MEDORA_COLORS } from '@/utils/pdf-utils';
 
-export const generateMedicalInfoPDF = (data: PatientProfileData) => {
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: { finalY: number };
+  }
+}
+
+export const generateMedicalInfoPDF = async (data: PatientProfileData) => {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -15,7 +23,7 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
   const contentWidth = pageWidth - (margin * 2);
 
   // Add Header
-  let y = addMedoraHeader(
+  let y = await addMedoraHeader(
     pdf, 
     'Medical Information', 
     'Health Records & Clinical Data',
@@ -24,7 +32,7 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
 
   // Vital Signs Card
   pdf.setFillColor(MEDORA_COLORS.background[0], MEDORA_COLORS.background[1], MEDORA_COLORS.background[2]);
-  pdf.roundedRect(margin, y, contentWidth, 25, 3, 3, 'F');
+  pdf.roundedRect(margin, y, contentWidth, 30, 3, 3, 'F');
   
   pdf.setFontSize(12);
   pdf.setTextColor(MEDORA_COLORS.primary[0], MEDORA_COLORS.primary[1], MEDORA_COLORS.primary[2]);
@@ -38,19 +46,19 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
   const colWidth = contentWidth / 3;
   
   pdf.setFont('helvetica', 'bold');
-  pdf.text('Blood Type:', margin + 5, y + 16);
-  pdf.text('Height:', margin + colWidth + 5, y + 16);
-  pdf.text('Weight:', margin + (colWidth * 2) + 5, y + 16);
+  pdf.text('Blood Type:', margin + 5, y + 18);
+  pdf.text('Height:', margin + colWidth + 5, y + 18);
+  pdf.text('Weight:', margin + (colWidth * 2) + 5, y + 18);
 
   pdf.setFont('helvetica', 'normal');
-  pdf.text(data.medicalInfo.bloodType, margin + 30, y + 16);
-  pdf.text(`${data.medicalInfo.height} cm`, margin + colWidth + 30, y + 16);
-  pdf.text(`${data.medicalInfo.weight} kg`, margin + (colWidth * 2) + 30, y + 16);
+  pdf.text(data.medicalInfo.bloodType || 'Not recorded', margin + 30, y + 18);
+  pdf.text(`${data.medicalInfo.height || '0'} cm`, margin + colWidth + 30, y + 18);
+  pdf.text(`${data.medicalInfo.weight || '0'} kg`, margin + (colWidth * 2) + 30, y + 18);
 
-  y += 35;
+  y += 40;
 
   // Allergies Section
-  if (data.medicalInfo.allergies.length > 0) {
+  if (data.medicalInfo.allergies && data.medicalInfo.allergies.length > 0 && data.medicalInfo.allergies[0] !== 'None reported') {
     y = addSectionHeader(pdf, y, 'Allergies', MEDORA_COLORS.error);
 
     data.medicalInfo.allergies.forEach((allergy, index) => {
@@ -62,16 +70,17 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
     });
 
     y += (data.medicalInfo.allergies.length * 5) + 10;
-  } else {
-    y = addSectionHeader(pdf, y, 'Allergies', MEDORA_COLORS.success);
-    pdf.setFontSize(10);
-    pdf.setTextColor(MEDORA_COLORS.text.secondary[0], MEDORA_COLORS.text.secondary[1], MEDORA_COLORS.text.secondary[2]);
-    pdf.text('No known allergies', margin + 5, y);
-    y += 10;
   }
 
   // Current Medications
-  if (data.medicalInfo.currentMedications.length > 0) {
+  if (data.medicalInfo.currentMedications && data.medicalInfo.currentMedications.length > 0) {
+    if (y > 250) {
+      pdf.addPage();
+      y = margin;
+      y = await addMedoraHeader(pdf, 'Medical Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+      y += 20;
+    }
+
     y = addSectionHeader(pdf, y, 'Current Medications', MEDORA_COLORS.primary);
 
     const medicationsBody = data.medicalInfo.currentMedications.map(med => [
@@ -80,7 +89,7 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
       med.frequency
     ]);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -91,19 +100,18 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    y = pdf.lastAutoTable.finalY + 10;
-  }
-
-  // Check if we need a new page
-  if (y > 250) {
-    pdf.addPage();
-    y = margin;
-    addMedoraHeader(pdf, 'Medical Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
-    y += 20;
+    y = (pdf as any).lastAutoTable.finalY + 10;
   }
 
   // Chronic Conditions
-  if (data.medicalInfo.chronicConditions.length > 0) {
+  if (data.medicalInfo.chronicConditions && data.medicalInfo.chronicConditions.length > 0 && data.medicalInfo.chronicConditions[0] !== 'None') {
+    if (y > 250) {
+      pdf.addPage();
+      y = margin;
+      y = await addMedoraHeader(pdf, 'Medical Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+      y += 20;
+    }
+
     y = addSectionHeader(pdf, y, 'Chronic Conditions', MEDORA_COLORS.warning);
 
     data.medicalInfo.chronicConditions.forEach((condition, index) => {
@@ -116,15 +124,22 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
   }
 
   // Past Surgeries
-  if (data.medicalInfo.pastSurgeries.length > 0) {
+  if (data.medicalInfo.pastSurgeries && data.medicalInfo.pastSurgeries.length > 0) {
+    if (y > 250) {
+      pdf.addPage();
+      y = margin;
+      y = await addMedoraHeader(pdf, 'Medical Information (Continued)', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+      y += 20;
+    }
+
     y = addSectionHeader(pdf, y, 'Past Surgeries', MEDORA_COLORS.secondary);
 
     const surgeriesBody = data.medicalInfo.pastSurgeries.map(surgery => [
       surgery.name,
-      surgery.year.toString()
+      surgery.year?.toString() || 'N/A'
     ]);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -135,15 +150,15 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
-    y = pdf.lastAutoTable.finalY + 10;
+    y = (pdf as any).lastAutoTable.finalY + 10;
   }
 
   // Medical Documents
-  if (data.medicalInfo.documents.length > 0) {
+  if (data.medicalInfo.documents && data.medicalInfo.documents.length > 0) {
     if (y > 250) {
       pdf.addPage();
       y = margin;
-      addMedoraHeader(pdf, 'Medical Documents', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
+      y = await addMedoraHeader(pdf, 'Medical Documents', '', `${data.personalInfo.firstName} ${data.personalInfo.lastName}`);
       y += 20;
     }
 
@@ -151,10 +166,10 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
 
     const documentsBody = data.medicalInfo.documents.map(doc => [
       doc.type.replace(/-/g, ' ').toUpperCase(),
-      new Date(doc.uploadedAt).toLocaleDateString()
+      doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'
     ]);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -166,9 +181,10 @@ export const generateMedicalInfoPDF = (data: PatientProfileData) => {
     });
   }
 
-  addFooter(pdf, pdf.internal.pages.length);
+  const totalPages = pdf.internal.pages.length - 1;
+  addFooter(pdf, totalPages);
 
-  const fileName = `Medora_Medical_Info_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const fileName = `Medora_Medical_${data.personalInfo.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
   pdf.save(fileName);
   
   return fileName;
