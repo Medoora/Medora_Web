@@ -66,6 +66,17 @@ export function ContactForm({ onLocationSubmit, isGlobeAnimating }: ContactFormP
   const [locationError, setLocationError] = useState('');
   const [formProgress, setFormProgress] = useState(0);
 
+  // Auto-detect location when user stops typing
+useEffect(() => {
+  if (!formData.location || formData.location.length < 3) return;
+
+  const timer = setTimeout(() => {
+    handleLocationCheck();
+  }, 1200); // wait 1.2s after typing stops
+
+  return () => clearTimeout(timer);
+}, [formData.location]);
+
   // Calculate form progress
   useEffect(() => {
     const requiredFields = ['fullName', 'email', 'role', 'location', 'experience', 'message', 'acceptedTerms'];
