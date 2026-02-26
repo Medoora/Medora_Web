@@ -130,6 +130,28 @@ return (
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
+      {/* Empty State */}
+{!loading && filteredFiles.length === 0 && (
+  <Card className="py-12">
+    <CardContent className="flex flex-col items-center justify-center text-center">
+      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <Star className="h-8 w-8 text-muted-foreground" />
+      </div>
+
+      <h3 className="text-lg font-semibold mb-2">
+        No starred reports yet
+      </h3>
+
+      <p className="text-sm text-muted-foreground mb-4 max-w-md">
+        Mark important medical reports with a star to access them quickly here.
+      </p>
+
+      <Button variant="outline" onClick={() => window.location.href = "/mydrive"}>
+        Browse Reports
+      </Button>
+    </CardContent>
+  </Card>
+)}
 
       {/* Grid View */}
       {!loading && viewMode === 'grid' && (
