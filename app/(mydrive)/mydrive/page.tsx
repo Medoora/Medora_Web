@@ -159,10 +159,9 @@ const Page = () => {
   }
 
   // Handle view file
-  const handleViewFile = (fileId: string) => {
-    router.push(`/dashboard/view/${fileId}`)
-  }
-
+const handleViewFile = (fileId: string) => {
+  router.push(`/view/${fileId}`);
+};
   // Handle download
   const handleDownload = (url: string, filename: string) => {
     window.open(url, '_blank')

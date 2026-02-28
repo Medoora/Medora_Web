@@ -152,9 +152,9 @@ useEffect(() => {
   }, [files, typeFilter, sortBy]);
 
   // handlers
-  const handleViewFile = (fileId: string) => {
-    router.push(`/dashboard/view/${fileId}`);
-  };
+const handleViewFile = (fileId: string) => {
+  router.push(`/view/${fileId}`);
+};
 
   const handleDownload = (url: string, documentName: any) => {
     window.open(url, "_blank");
