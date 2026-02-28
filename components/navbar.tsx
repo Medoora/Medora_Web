@@ -7,11 +7,34 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import ThemeToggleButton from './ui/theme-toggle-button';
+import { useAuth } from "@/context/auth/authContext";
+import { useRouter } from "next/navigation";
+import { signOutUser } from "@/lib/firebase/service/auth";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { LogOut, LayoutDashboard } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+
+  const { user } = useAuth();
+const router = useRouter();
+
+const handleLogout = async () => {
+  await signOutUser();
+  toast.success("Logged out");
+  router.push("/");
+};
 
   const links = [
     { name: "Overview", href: "/" },
@@ -92,15 +115,56 @@ export default function Navbar() {
         </div>
 
         {/* CTA */}
-        <div className='flex items-center gap-2'>
-          <ThemeToggleButton variant='circle-blur' />
-          <Link
-            href="/sign-up"
-            className="hidden rounded-md bg-blue-600 text-white px-5 py-2 text-sm font-semibold transition hover:bg-blue-700 md:inline-block"
-          >
-            Sign Up
-          </Link>
-        </div>
+<div className="flex items-center gap-2">
+  <ThemeToggleButton variant="circle-blur" />
+
+  {user ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="h-9 w-9 rounded-full bg-blue-500 text-white font-semibold">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-blue-500 text-white">
+              {user?.displayName?.slice(0, 1)}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium">{user?.displayName}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+        </DropdownMenuLabel>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem onClick={() => router.push("/dashboard")}>
+          <LayoutDashboard className="mr-2 h-4 w-4" />
+          Dashboard
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <Link
+      href="/sign-up"
+      className="hidden rounded-md bg-blue-600 text-white px-5 py-2 text-sm font-semibold transition hover:bg-blue-700 md:inline-block"
+    >
+      Sign Up
+    </Link>
+  )}
+</div>
 
         {/* MOBILE MENU BUTTON */}
         <button
@@ -132,14 +196,23 @@ export default function Navbar() {
           </Link>
         ))}
 
-        <Link
-          href="/sign-up"
-          className="rounded-md bg-blue-400 text-white px-8 py-3 font-medium transition hover:bg-indigo-700"
-          onClick={() => setIsOpen(false)}
-        >
-          Sign Up
-        </Link>
-
+{user ? (
+  <Link
+    href="/dashboard"
+    className="rounded-md bg-blue-400 text-white px-8 py-3 font-medium"
+    onClick={() => setIsOpen(false)}
+  >
+    Dashboard
+  </Link>
+) : (
+  <Link
+    href="/sign-up"
+    className="rounded-md bg-blue-400 text-white px-8 py-3 font-medium"
+    onClick={() => setIsOpen(false)}
+  >
+    Sign Up
+  </Link>
+)}
         <button
           onClick={() => setIsOpen(false)}
           className="absolute top-6 right-6 text-gray-700"
