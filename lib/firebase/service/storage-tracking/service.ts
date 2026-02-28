@@ -18,6 +18,7 @@ export interface UserStorage {
   quotaBytes: number; // 500MB in bytes
   quotaPercentage: number;
 }
+import { deleteDoc } from 'firebase/firestore';
 
 const DEFAULT_QUOTA_BYTES = 500 * 1024 * 1024; // 500MB in bytes
 
@@ -108,41 +109,53 @@ export class StorageService {
   }
 
   // Remove file from storage when deleted
-  static async removeFileStorage(
-    userId: string, 
-    fileBytes: number
-  ): Promise<boolean> {
-    try {
-      console.log(`🗑️ Removing file from storage - User: ${userId}, Size: ${fileBytes} bytes`);
-      
-      const storageRef = doc(db, 'user_storage', userId);
-      const storageDoc = await getDoc(storageRef);
-      
-      if (!storageDoc.exists()) {
-        console.warn('⚠️ Storage document not found, cannot remove file');
-        return false;
-      }
-
-      const currentData = storageDoc.data();
-      const currentTotal = currentData.totalBytes || 0;
-      const newTotal = Math.max(0, currentTotal - fileBytes);
-      const quotaBytes = currentData.quotaBytes || DEFAULT_QUOTA_BYTES;
-      const percentage = (newTotal / quotaBytes) * 100;
-
-      await updateDoc(storageRef, {
-        totalBytes: increment(-fileBytes),
-        totalFiles: increment(-1),
-        lastUpdated: new Date().toISOString(),
-        quotaPercentage: percentage
-      });
-
-      console.log(`✅ Storage updated after removal! New total: ${newTotal} bytes`);
-      return true;
-    } catch (error) {
-      console.error('❌ Error removing storage:', error);
+static async removeFileStorage(
+  userId: string, 
+  fileBytes: number
+): Promise<boolean> {
+  try {
+    console.log(`🗑️ Removing file from storage - User: ${userId}, Size: ${fileBytes} bytes`);
+    
+    const storageRef = doc(db, 'user_storage', userId);
+    const storageDoc = await getDoc(storageRef);
+    
+    if (!storageDoc.exists()) {
+      console.warn('⚠️ Storage document not found, cannot remove file');
       return false;
     }
+
+    const currentData = storageDoc.data();
+    const currentTotal = currentData.totalBytes || 0;
+    const currentFiles = currentData.totalFiles || 0;
+
+    const newTotal = Math.max(0, currentTotal - fileBytes);
+    const newFileCount = Math.max(0, currentFiles - 1);
+
+    // 🔥 If no files left → delete storage document
+    if (newTotal === 0 || newFileCount === 0) {
+      await deleteDoc(storageRef);
+      console.log('🗑️ Storage document deleted completely (no files left)');
+      return true;
+    }
+
+    const quotaBytes = currentData.quotaBytes || DEFAULT_QUOTA_BYTES;
+    const percentage = (newTotal / quotaBytes) * 100;
+
+    await updateDoc(storageRef, {
+      totalBytes: newTotal,
+      totalFiles: newFileCount,
+      lastUpdated: new Date().toISOString(),
+      quotaPercentage: percentage
+    });
+
+    console.log(`✅ Storage updated after removal! New total: ${newTotal} bytes`);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error removing storage:', error);
+    return false;
   }
+}
 
   // Get user storage info
   static async getUserStorage(userId: string): Promise<UserStorage | null> {
