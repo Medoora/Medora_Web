@@ -5,6 +5,7 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
+  deleteField,
   doc, 
   getDoc, 
   getDocs, 
@@ -20,6 +21,7 @@ import {
 } from 'firebase/firestore';
 import {StorageService} from "@/lib/firebase/service/storage-tracking/service"
 import { toast } from 'sonner';
+
 export interface ShareSettings {
   isPublic: boolean;
   shareableLink?: string;
@@ -503,15 +505,23 @@ export const updateShareSettings = async (
     const shareId = data.shareSettings?.shareId;
     
     // Update the original document
-    await updateDoc(docRef, {
-      ...Object.keys(updates).reduce((acc, key) => {
-        acc[`shareSettings.${key}`] = updates[key as keyof ShareSettings];
-        return acc;
-      }, {} as any),
-      'shareSettings.updatedAt': serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    
+if (updates.requirePassword === false) {
+  await updateDoc(docRef, {
+    "shareSettings.requirePassword": false,
+    "shareSettings.password": deleteField(),
+    "shareSettings.updatedAt": serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+} else {
+  await updateDoc(docRef, {
+    ...Object.keys(updates).reduce((acc, key) => {
+      acc[`shareSettings.${key}`] = updates[key as keyof ShareSettings];
+      return acc;
+    }, {} as any),
+    "shareSettings.updatedAt": serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+}
     // Also update the shares collection if shareId exists
     if (shareId) {
       const shareDocRef = doc(db, 'shares', shareId);
@@ -529,10 +539,13 @@ export const updateShareSettings = async (
         }
         
         // Update password requirement
-        if (updates.requirePassword !== undefined) {
-          shareUpdates.requirePassword = updates.requirePassword;
-          shareUpdates.hasPassword = !!updates.password;
-        }
+if (updates.requirePassword === false) {
+  shareUpdates.requirePassword = false;
+  shareUpdates.hasPassword = false;
+} else if (updates.requirePassword === true) {
+  shareUpdates.requirePassword = true;
+  shareUpdates.hasPassword = true;
+}
         
         // Update expiry
         if (updates.expiresAt !== undefined) {
