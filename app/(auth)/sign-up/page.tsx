@@ -1,4 +1,6 @@
 "use client"
+
+export const dynamic = "force-dynamic"
 import AuthLayout from '@/components/layouts/auth/authlayout'
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
