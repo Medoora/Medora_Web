@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { useParams } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import DashboardLayout from '@/components/layouts/dashboard/dashboard-layout'
@@ -12,11 +11,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   Download,
   Calendar,
-  FileText,
-  Tag,
   Star,
-  Loader2
+  FileText,
+  Loader2,
+  Lock,
+  Globe
 } from 'lucide-react'
+import Image from 'next/image'
+import { toggleDocumentStarred } from '@/lib/firebase/service/uploadFile/service'
 
 interface DocumentData {
   id: string
@@ -28,40 +30,39 @@ interface DocumentData {
   categoryLabel?: string
   tags?: string[]
   isStarred?: boolean
+  starredAt?: any
+  fileInfo?: {
+    size: number
+    fileTypeCategory: string
+  }
+  shareSettings?: {
+    accessLevel?: string
+    isPublic?: boolean
+    requirePassword?: boolean
+    expiresAt?: any
+  }
   cloudinary: {
     url: string
-    thumbnailUrl?: string
     format: string
-    bytes: number
   }
 }
 
 export default function ViewPage() {
   const { fileId } = useParams() as { fileId: string }
-  const router = useRouter()
 
   const [document, setDocument] = useState<DocumentData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchDocument = async () => {
-      if (!fileId) return
-
-      try {
-        const snap = await getDoc(doc(db, 'documents', fileId))
-        if (snap.exists()) {
-          setDocument({ id: snap.id, ...(snap.data() as any) })
-        } else {
-          router.push('/dashboard')
-        }
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
+    const fetchDoc = async () => {
+      const snap = await getDoc(doc(db, 'documents', fileId))
+      if (snap.exists()) {
+        setDocument({ id: snap.id, ...(snap.data() as any) })
       }
+      setLoading(false)
     }
 
-    fetchDocument()
+    fetchDoc()
   }, [fileId])
 
   const formatBytes = (bytes: number) => {
@@ -74,18 +75,22 @@ export default function ViewPage() {
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '--'
     const date = timestamp.toDate?.() || new Date(timestamp)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    return date.toLocaleDateString()
+  }
+
+  const handleStarToggle = async () => {
+    if (!document) return
+    await toggleDocumentStarred(document.id, !document.isStarred)
+    setDocument(prev =>
+      prev ? { ...prev, isStarred: !prev.isStarred } : prev
+    )
   }
 
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </DashboardLayout>
     )
@@ -93,102 +98,89 @@ export default function ViewPage() {
 
   if (!document) return null
 
+  const format = document.cloudinary.format?.toLowerCase()
+  const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(format)
+  const isPDF = format === 'pdf'
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto p-6 space-y-8">
 
-        {/* Header */}
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div className="space-y-2">
+        {/* HEADER */}
+        <div className="flex justify-between items-start flex-wrap gap-4">
+          <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {document.documentName}
-              </h1>
+              <h1 className="text-3xl font-bold">{document.documentName}</h1>
 
-              {document.isStarred && (
-                <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-              )}
+              <button onClick={handleStarToggle}>
+                <Star
+                  className={`h-5 w-5 ${
+                    document.isStarred
+                      ? 'text-yellow-500 fill-yellow-500'
+                      : 'text-muted-foreground'
+                  }`}
+                />
+              </button>
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-3 mt-2 flex-wrap">
               {document.categoryLabel && (
                 <Badge variant="secondary">
                   {document.categoryLabel}
                 </Badge>
               )}
 
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+              <span className="text-sm text-muted-foreground">
                 Uploaded {formatDate(document.uploadedAt)}
               </span>
+
+              {document.fileInfo?.fileTypeCategory && (
+                <Badge variant="outline">
+                  {document.fileInfo.fileTypeCategory}
+                </Badge>
+              )}
             </div>
           </div>
 
-          <Button
-            onClick={() => window.open(document.cloudinary.url, '_blank')}
-            className="shadow-sm"
-          >
+          <Button onClick={() => window.open(document.cloudinary.url)}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
         </div>
 
-        {/* Preview Card */}
-<Card className="overflow-hidden border bg-gradient-to-br from-muted/40 to-muted/10 backdrop-blur">
-  <CardContent className="p-6">
-    <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+        {/* PREVIEW */}
+<Card>
+  <CardContent className="p-6 flex justify-center">
+    <div className="max-h-[500px] w-auto rounded-lg overflow-hidden border">
+      {isImage && (
+        <Image
+          src={document.cloudinary.url}
+          alt={document.documentName}
+          width={800}
+          height={600}
+          className="object-contain h-auto w-auto max-h-[500px]"
+        />
+      )}
 
-      {(() => {
-        const format = document.cloudinary.format?.toLowerCase()
-
-        const imageTypes = ['jpg', 'jpeg', 'png', 'webp']
-        const isImage = imageTypes.includes(format)
-        const isPDF = format === 'pdf'
-
-        // IMAGE PREVIEW
-        if (isImage) {
-          return (
-            <Image
-              src={document.cloudinary.url}
-              alt={document.documentName}
-              fill
-              className="object-contain"
-            />
-          )
-        }
-
-        // PDF PREVIEW (force inline)
-        if (isPDF) {
-          const pdfUrl = document.cloudinary.url
-            .replace('/image/upload/', '/raw/upload/')
-            .replace('/upload/', '/upload/fl_inline/')
-
-          return (
-            <iframe
-              src={pdfUrl}
-              className="w-full h-full"
-            />
-          )
-        }
-      })()}
-
+      {isPDF && (
+        <iframe
+          src={document.cloudinary.url}
+          className="w-[800px] h-[500px]"
+        />
+      )}
     </div>
   </CardContent>
 </Card>
-        {/* Info Section */}
+
+        {/* METADATA */}
         <div className="grid md:grid-cols-2 gap-6">
 
-          {/* Metadata */}
           <Card>
-            <CardContent className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                File Details
-              </h2>
-
-              <div className="text-sm space-y-2 text-muted-foreground">
+            <CardContent className="p-6 space-y-3">
+              <h2 className="font-semibold">File Details</h2>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>Size: {formatBytes(document.fileInfo?.size || 0)}</div>
                 <div>Format: {document.cloudinary.format?.toUpperCase()}</div>
-                <div>Size: {formatBytes(document.cloudinary.bytes)}</div>
                 {document.documentDate && (
                   <div>Document Date: {document.documentDate}</div>
                 )}
@@ -196,37 +188,62 @@ export default function ViewPage() {
             </CardContent>
           </Card>
 
-          {/* Description & Tags */}
           <Card>
-            <CardContent className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Description & Tags
-              </h2>
+            <CardContent className="p-6 space-y-3">
+              <h2 className="font-semibold">Share Settings</h2>
 
-              {document.description ? (
-                <p className="text-sm text-muted-foreground">
-                  {document.description}
-                </p>
+              {document.shareSettings ? (
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <div>
+                    Access Level: {document.shareSettings.accessLevel}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {document.shareSettings.isPublic ? (
+                      <>
+                        <Globe className="h-4 w-4" /> Public
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" /> Private
+                      </>
+                    )}
+                  </div>
+
+                  {document.shareSettings.requirePassword && (
+                    <div>Password Protected</div>
+                  )}
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No description added.
-                </p>
-              )}
-
-              {document.tags && document.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {document.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
+                <div className="text-sm text-muted-foreground">
+                  Not shared
                 </div>
               )}
             </CardContent>
           </Card>
 
         </div>
+
+        {/* DESCRIPTION & TAGS */}
+        <Card>
+          <CardContent className="p-6 space-y-3">
+            <h2 className="font-semibold">Description</h2>
+            <p className="text-sm text-muted-foreground">
+              {document.description || 'No description provided.'}
+            </p>
+
+            {document.tags && document.tags.length > 0 && (
+              <div className="flex gap-2 flex-wrap pt-2">
+                {document.tags.map((tag, i) => (
+                  <Badge key={i} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
       </div>
     </DashboardLayout>
   )
