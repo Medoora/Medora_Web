@@ -55,7 +55,11 @@ const SignIn = () => {
     setSuccess(null)
 
     try {
-      const result = await directLogin(email, password)
+const cleanEmail = email.trim().toLowerCase()
+console.log("RAW:", `"${email}"`)
+console.log("CLEAN:", `"${cleanEmail}"`)
+
+const result = await directLogin(cleanEmail, password)
 
       if (result.success && result.user) {
         toast.success("Signed in successfully!")
@@ -118,7 +122,8 @@ const SignIn = () => {
 
     try {
       // Use Firebase OTP login function
-      const result = await loginWithOTP(email, password)
+      const cleanEmail = email.trim().toLowerCase()
+const result = await loginWithOTP(cleanEmail, password)
       
       if (result.success && result.otp) {
         // Store password for OTP verification
@@ -152,8 +157,9 @@ const SignIn = () => {
 
     try {
       // Verify OTP with Firebase
-      const result = await verifyOTPAndLogin(email, storedPassword, otp)
-      
+      const cleanEmail = email.trim().toLowerCase()
+const result = await verifyOTPAndLogin(cleanEmail, storedPassword, otp)
+
       if (result.success && result.user) {
         toast.success("Login successful!")
         
@@ -194,7 +200,8 @@ const SignIn = () => {
 
     try {
       // Resend OTP with Firebase
-      const result = await resendOTP(email, storedPassword)
+      const cleanEmail = email.trim().toLowerCase()
+const result = await resendOTP(cleanEmail, storedPassword)
       
       if (result.success && result.otp) {
         setGeneratedOTP(result.otp)
@@ -273,7 +280,8 @@ const SignIn = () => {
     
     try {
       // Use the resetPassword function from firebase-auth-utils
-      const result = await resetPassword(email)
+      const cleanEmail = email.trim().toLowerCase()
+const result = await resetPassword(cleanEmail)
       
       if (result.success) {
         toast.success("Password reset email sent!")
@@ -299,7 +307,7 @@ const SignIn = () => {
         </Label>
         <Input
           id="email"
-          type="email"
+          type="text"
           value={email}
           required
           disabled={loading}
