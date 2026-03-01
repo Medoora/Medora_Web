@@ -33,6 +33,7 @@ import { GridViewCard } from '@/components/my-drive/grid/my-drive-grid'
 import { ListViewRow } from '@/components/my-drive/list/list-view'
 import { EmptyState } from '@/components/my-drive/empty-state'
 import { downloadFile } from '@/lib/utils/downloadFile'
+import FileUploadDialog from '@/components/layouts/dashboard/components/dialog/file-upload-dialog'
 
 // Helper function to format bytes
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -69,6 +70,7 @@ const Page = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [starredFilter, setStarredFilter] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   // Fetch files
   useEffect(() => {
@@ -344,9 +346,14 @@ const handleDownload = (url: string, format: string) => {
           <EmptyState
             hasFiles={files.length > 0}
             onClearFilters={handleClearFilters}
-            onUpload={() => router.push('/dashboard/upload')}
+            onUpload={() => setUploadOpen(true)}
+            
           />
         )}
+<FileUploadDialog
+  isOpen={uploadOpen}
+  onClose={() => setUploadOpen(false)}
+/>
       </div>
     </DashboardLayout>
   )

@@ -52,7 +52,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { toast } from "sonner";
 import { downloadFile } from "@/lib/utils/downloadFile";
-
+import { EmptyState } from "@/components/my-drive/empty-state";
+import FileUploadDialog from '@/components/layouts/dashboard/components/dialog/file-upload-dialog'
 
 // helpers
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -89,7 +90,7 @@ const Page = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
+const [uploadOpen, setUploadOpen] = useState(false);
   // fetch recent
 useEffect(() => {
   if (authLoading) return;   // wait until auth finishes
@@ -191,6 +192,10 @@ const handleDownload = (url: string, format: string) => {
   }
 
   function setStarredFilter(arg0: boolean) {
+    throw new Error("Function not implemented.");
+  }
+
+  function handleClearFilters(): void {
     throw new Error("Function not implemented.");
   }
 
@@ -497,40 +502,19 @@ const handleDownload = (url: string, format: string) => {
       )}
       
               {/* Empty State */}
-              {!loading && filteredFiles.length === 0 && (
-                <Card className="py-12">
-                  <CardContent className="flex flex-col items-center justify-center text-center">
-                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                      <FolderOpen className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      {files.length === 0 ? 'No files yet' : 'No matching files'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                      {files.length === 0 
-                        ? 'Upload your first medical image to start organizing your studies.'
-                        : 'Try adjusting your search or filters to find what you\'re looking for.'}
-                    </p>
-                    {files.length === 0 ? (
-                      <Button onClick={() => router.push('/dashboard/upload')}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Files
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setSearchTerm('')
-                          setTypeFilter('all')
-                          setStarredFilter(false)
-                        }}
-                      >
-                        Clear Filters
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+{/* Empty State */}
+        {!loading && filteredFiles.length === 0 && (
+          <EmptyState
+            hasFiles={files.length > 0}
+            onClearFilters={handleClearFilters}
+            onUpload={() => setUploadOpen(true)}
+            
+          />
+        )}
+<FileUploadDialog
+  isOpen={uploadOpen}
+  onClose={() => setUploadOpen(false)}
+/>
             </div>
     </DashboardLayout>
   );
