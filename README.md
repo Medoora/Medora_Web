@@ -1,7 +1,10 @@
-<div align="center">
-  <img width="1300" src="./public/logo/medora-full.png" alt="MEDORA Banner" />
-  <p>Secure • Organized • User-Controlled Healthcare Data</p>
-</div>
+<div align="left">
+
+ <div align='center'>
+   <img width="1300" src="./public/logo/medora-full.png" alt="MEDORA Dark Mode" />
+   <p>Secure • Organized • User-Controlled Healthcare Data</p>
+   
+ </div>
 
 <div align="center">
 
@@ -19,39 +22,82 @@
 ![Resend](https://img.shields.io/badge/Resend-000000?style=for-the-badge&logo=resend)
 ![Gemini](https://img.shields.io/badge/Gemini-1A73E8?style=for-the-badge&logo=google)
 ![AI%20SDK](https://img.shields.io/badge/AI%20SDK-4F46E5?style=for-the-badge)
-
 </div>
 
----
 
 # 🏠 Home Page Preview
 
 <div align="center">
-  <img src="./public/dark.png" alt="MEDORA Dark Mode" />
+   <img src="./public/dark.png" alt="MEDORA Dark Mode" />
 </div>
 
 ---
 
-# 🤝 Looking for Indie Developers & Builders
+</div>
 
-🚀 **Building MEDORA in public** and actively looking for **indie developers** who want to collaborate, learn, and ship something meaningful together.
 
-If you're interested in:
-- 🧑‍💻 Web development
-- ⚛️ React / Next.js
-- 🔐 Auth, storage & system design
-- 🩺 Health-tech with real-world impact
+# 🌟 Wall of Top Contributors
+This wall celebrates the amazing people who have made significant contributions to this project.  
+Your efforts, time, and creativity help push this project forward—thank you! 💙
 
-You're very welcome here.
+---
+## 🏆 Top Contributors
 
-👉 Open an issue, start a discussion, or reach out via GitHub.  
-Let's build, break, and learn together 🌱
+<table width="100%">
+  <tr>
+    <td align="center" width="50%">
+      <img src="./public/collaborator/subhro.png" height='400' style="border-radius:50%" />
+      <br /><br />
+      <b>Subhro</b>
+      <br />
+      <sub>Lead Developer(Full-Stack)</sub>
+      <br /><br />
+      <a href="https://github.com/IgYaHiko" target="_blank">GitHub</a> •
+      <a href="https://www.instagram.com/_mojo_rojo/" target="_blank">Instagram</a> •
+      <a href="https://www.linkedin.com/in/subhro-kolay-05952328a/" target="_blank">LinkedIn</a>
+    </td>
+    <td align="center" width="50%">
+      <img src="./public/collaborator/rohan.png" height='400' style="border-radius:50%" />
+      <br /><br />
+      <b>Rohan</b>
+      <br />
+      <sub>Core Contributor(Full-Stack)</sub>
+      <br /><br />
+      <a href="https://github.com/rohan24may" target="_blank">GitHub</a> •
+      <a href="https://www.instagram.com/roha_n_._/" target="_blank">Instagram</a> •
+      <a href="https://www.linkedin.com/in/rohan-24may/" target="_blank">LinkedIn</a>
+    </td>
+  </tr>
+</table>
 
-**#indiedev #indiehacker #opensource #buildinpublic #nextjs #healthtech**
+---
+## 🚀 How to Get Featured Here
+
+Want to see your face on this wall?  
+Here’s how you can earn a spot among the top contributors:
+
+- Contribute **meaningful and impactful code or documentation**
+- Fix critical bugs or implement valuable new features
+- Actively participate in **discussions, code reviews, and issue tracking**
+- Maintain **high-quality, well-structured, and consistent commits**
+- Reach a cumulative contribution of **3000+ lines of code** in this repository
+- Show long-term commitment and collaboration with the project
+
+Quality matters more than quantity—but sustained effort gets noticed. 💪  
 
 ---
 
-# ✨ About MEDORA
+## ❤️ Appreciation
+
+Every contribution—big or small—matters.  
+This wall is our way of saying **thank you** for being part of the journey 🚀
+
+If you think someone deserves a spot here, feel free to open a PR!
+
+---
+## ✨ About MEDORA
+
+
 
 **MEDORA** is an early-stage medical technology platform designed to simplify how people store and manage their medical data.
 
@@ -60,7 +106,7 @@ where users can securely store medical records and apply for insurance—all fro
 
 ---
 
-# 🚀 Vision
+## 🚀 Vision
 
 Healthcare data today is scattered, hard to access, and rarely user-controlled.
 
@@ -68,11 +114,10 @@ MEDORA aims to:
 - 🔐 **Give users full ownership** of their medical data  
 - 📁 **Centralize health records** securely  
 - 🛡️ **Simplify insurance access**  
-- ⚡ **Make healthcare data usable and accessible**
+- ⚡ **Make healthcare data usable and accessible**  
 
 ---
-
-# 🏗️ System Architecture
+## 🏗️ System Architecture
 
 MEDORA follows a **secure, scalable, and modular architecture** ensuring privacy-first healthcare data management.
 
@@ -91,7 +136,7 @@ MEDORA follows a **secure, scalable, and modular architecture** ensuring privacy
 
 ---
 
-# 📤 File Upload Process
+## 📤 File Upload Process
 
 The upload flow is designed to ensure **security, validation, and real-time availability**.
 
@@ -109,8 +154,9 @@ The upload flow is designed to ensure **security, validation, and real-time avai
 5. 🔄 Real-time sync to dashboard  
 
 ---
+## 💡 Key Features
 
-# 💡 Key Features
+<img align="right" src="https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif" width="260"/>
 
 ### 📂 Medical Data Storage
 Upload reports, prescriptions, and medical history like a cloud drive.
@@ -135,12 +181,12 @@ Instant synchronization across all devices.
 
 ---
 
-# 🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 <div align="left">
 
 | Category | Technologies |
-|----------|-------------|
+|--------|-------------|
 | **Frontend** | Next.js 15 (App Router), TypeScript, React 19 |
 | **Styling** | Tailwind CSS, shadcn/ui, Framer Motion, Lucide Icons |
 | **Authentication** | Firebase Auth (Email, OTP, Google OAuth) |
@@ -152,9 +198,7 @@ Instant synchronization across all devices.
 
 </div>
 
----
-
-# 🧪 Local Development
+## 🧪 Local Development
 
 ```bash
 # Clone the repository
@@ -168,3 +212,16 @@ npm install
 
 # Start development server
 npm run dev
+```
+
+---
+
+## 🌍 Deployment
+
+```text
+Hosted on Vercel
+
+Environment variables configured via the Vercel dashboard
+
+Automatic CI/CD enabled from the `main` branch
+```
