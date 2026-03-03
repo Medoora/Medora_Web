@@ -2,7 +2,12 @@ import {
   collection, 
   addDoc, 
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  Unsubscribe
 } from 'firebase/firestore'
 import { db } from '../../config'
 
@@ -21,6 +26,7 @@ export interface TestimonialData {
   review: string
   rating: number
   imageUrl?: string
+  image?: string
   imagePublicId?: string
   status: 'pending' | 'approved' | 'rejected'
   createdAt: Timestamp
@@ -43,18 +49,30 @@ class TestimonialService {
     formData.append('file', file)
 
     try {
-      // Use server-side API route for secure upload
+      console.log('Starting upload to API...')
+      
       const response = await fetch('/api/cloudinary/testimonials/upload', {
         method: 'POST',
         body: formData
       })
 
+      console.log('Response status:', response.status)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to upload image')
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          throw new Error(errorData.error || `Upload failed with status ${response.status}`)
+        } catch {
+          throw new Error(errorText || `Upload failed with status ${response.status}`)
+        }
       }
 
       const data = await response.json()
+      console.log('Upload successful:', data)
+      
       return {
         secure_url: data.secure_url,
         public_id: data.public_id
@@ -74,7 +92,9 @@ class TestimonialService {
 
       // Upload image to Cloudinary if provided via server API
       if (data.imageFile) {
+        console.log('Uploading image...')
         imageData = await this.uploadToCloudinary(data.imageFile)
+        console.log('Image uploaded:', imageData)
       }
 
       // Prepare testimonial data for Firebase
@@ -83,7 +103,7 @@ class TestimonialService {
         about: data.about.trim(),
         review: data.review.trim(),
         rating: data.rating,
-        status: 'pending', // New testimonials require admin approval
+        status: 'approved', // Auto-approve since no admin panel
         createdAt: serverTimestamp() as Timestamp,
         ...(imageData && {
           imageUrl: imageData.secure_url,
@@ -91,8 +111,12 @@ class TestimonialService {
         })
       }
 
+      console.log('Saving to Firebase...')
+
       // Save to Firebase
       const docRef = await addDoc(collection(db, this.collectionName), testimonialData)
+
+      console.log('Saved successfully with ID:', docRef.id)
 
       return {
         id: docRef.id,
@@ -103,6 +127,30 @@ class TestimonialService {
       console.error('Error submitting testimonial:', error)
       throw error
     }
+  }
+
+  /**
+   * Subscribe to real-time testimonial updates
+   */
+  subscribeToTestimonials(callback: (testimonials: TestimonialData[]) => void): Unsubscribe {
+    const q = query(
+      collection(db, this.collectionName),
+      where('status', '==', 'approved'),
+      orderBy('createdAt', 'desc')
+    )
+
+    return onSnapshot(q, (querySnapshot) => {
+      const testimonials: TestimonialData[] = []
+      querySnapshot.forEach((doc) => {
+        testimonials.push({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as TestimonialData)
+      })
+      callback(testimonials)
+    }, (error) => {
+      console.error('Error in testimonial subscription:', error)
+    })
   }
 
   /**

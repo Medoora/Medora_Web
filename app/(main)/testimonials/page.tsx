@@ -127,12 +127,15 @@ export default function TestimonialsPage() {
   }
 
   // Handle form submission (uncommented and ready to use)
- const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   
   // Validate form data
   const testimonialData: TestimonialFormData = {
-    ...formData,
+    name: formData.name,
+    about: formData.about,
+    review: formData.review,
+    rating: formData.rating,
     imageFile: imageFile || undefined
   }
 
@@ -149,7 +152,7 @@ export default function TestimonialsPage() {
     const result = await testimonialService.submitTestimonial(testimonialData)
     
     toast.success('Thank you for your feedback!', {
-      description: 'Your testimonial has been submitted for review.',
+      description: 'Your testimonial has been submitted successfully and will appear on the homepage in seconds!',
       icon: '🎉',
     })
     
@@ -162,21 +165,39 @@ export default function TestimonialsPage() {
     })
     removeImage()
     
+    // Show a preview message
+    toast.info('Check the homepage to see your testimonial live!', {
+      duration: 3000,
+    })
+    
     // Redirect after successful submission
     setTimeout(() => {
-      router.push('/')
+      router.push('/#testimonials')
     }, 2000)
     
   } catch (error: any) {
     console.error('Submission error:', error)
+    
+    // Handle specific error messages
+    let errorMessage = 'Please try again later.'
+    
+    if (error.message) {
+      if (error.message.includes('image')) {
+        errorMessage = 'Failed to upload image. Please check file size and format.'
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection.'
+      } else {
+        errorMessage = error.message
+      }
+    }
+    
     toast.error('Failed to submit testimonial', {
-      description: error.message || 'Please try again later.',
+      description: errorMessage,
     })
   } finally {
     setLoading(false)
   }
 }
-
   return (
     <div className="min-h-screen  py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
