@@ -61,7 +61,7 @@ const DOCUMENT_CATEGORIES = [
 ];
 
 // Max file size in bytes (1MB)
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 1MB in bytes
 
 const FileUploadDialog = ({ isOpen, onClose, patientId, onSuccess }: FileDialogProps) => {
   const { user: currentUserData } = useAuth();
@@ -115,7 +115,7 @@ const FileUploadDialog = ({ isOpen, onClose, patientId, onSuccess }: FileDialogP
 
     // Validate file using the enhanced validation
     const validation = validateFile(file, {
-      maxSizeMB: 1, // Set to 1MB
+      maxSizeMB: 10, // Set to 1MB
       allowedTypes: [
         ...FILE_TYPE_CATEGORIES.image,
         ...FILE_TYPE_CATEGORIES.pdf,
@@ -636,7 +636,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     Supported formats: Images (JPEG, PNG, GIF, WEBP, TIFF), PDF, Documents (DOC, DOCX), Spreadsheets (XLS, XLSX)
                   </p>
                   <p className="text-xs font-medium text-blue-600 mt-1">
-                    Maximum file size: 1MB
+                    Maximum file size: 10MB
                   </p>
                 </div>
               )}
