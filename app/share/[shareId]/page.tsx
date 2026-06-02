@@ -8,10 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { 
   Download, 
-  Eye, 
   Lock, 
-  Calendar,
-  User,
   AlertCircle,
   Loader2,
   FileText
@@ -29,7 +26,6 @@ import {
 import { Timestamp } from 'firebase/firestore'
 import Link from 'next/link'
 import { LOGO } from '@/public/logo/logo'
-import Navbar from '@/components/navbar'
 import { formatBytes } from '@/utils/utils'
 import { downloadFile } from '@/lib/utils/downloadFile'
 
@@ -84,76 +80,10 @@ export default function SharedDocumentPage() {
   const [password, setPassword] = useState('')
   const [verifyingPassword, setVerifyingPassword] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [checkingAccess, setCheckingAccess] = useState(false)
-const fetchSharedDocument = async (skipPasswordCheck = false) => {
-  console.log('🔍 [PAGE] ===== START fetchSharedDocument =====');
-  console.log('🔍 [PAGE] Fetching document for shareId:', shareId);
-  
-  if (!shareId) {
-    setError('Invalid share link');
-    setLoading(false);
-    return;
-  }
-  
-  try {
-    setLoading(true)
-    console.log('🔍 [PAGE] Calling getDocumentByShareId...');
-    
-    const result = await getDocumentByShareId(shareId) as DocumentResponse
-    
-    console.log('🔍 [PAGE] getDocumentByShareId returned:', result);
-    
-    if (!result) {
-      console.log('❌ [PAGE] Result is null - document not found');
-      setError('Document not found or has been removed')
-      return
-    }
 
-    if (isErrorResponse(result)) {
-      console.log('❌ [PAGE] Result is error response:', result);
-      setError(result.error)
-      return
-    }
-
-    if (isSharedDocument(result)) {
-      console.log('✅ [PAGE] Result is valid SharedDocument');
-      setDocument(result)
-
-      // Check if document requires password - but skip if we're already past password screen
-      if (!skipPasswordCheck && result.shareSettings?.requirePassword && result.shareSettings?.password) {
-        console.log('🔒 [PAGE] Document requires password');
-        setRequiresPassword(true)
-        setLoading(false)
-        return
-      }
-
-      // Check access for restricted documents
-      if (result.shareSettings?.accessLevel === 'restricted') {
-        console.log('🔒 [PAGE] Document is restricted');
-        await checkUserAccess(result)
-      } else {
-        console.log('🌐 [PAGE] Document is public, tracking view...');
-        await trackShareView(shareId)
-      }
-    } else {
-      console.log('❌ [PAGE] Result is neither error nor SharedDocument:', result);
-      setError('Invalid document data')
-    }
-
-  } catch (error) {
-    console.error('❌ [PAGE] Error in fetchSharedDocument:');
-    console.error('❌ [PAGE] Full error:', error);
-    setError('Failed to load document')
-  } finally {
-    setLoading(false)
-    console.log('🔍 [PAGE] ===== END fetchSharedDocument =====');
-  }
-}
-  useEffect(() => {
-    console.log('🔍 [PAGE] ===== PAGE MOUNTED =====');
-    console.log('🔍 [PAGE] shareId from params:', shareId);
-    console.log('🔍 [PAGE] shareId type:', typeof shareId);
-    console.log('🔍 [PAGE] User auth state:', user ? 'Logged in' : 'Not logged in');
+  const fetchSharedDocument = async (skipPasswordCheck = false) => {
+    console.log('🔍 [PAGE] ===== START fetchSharedDocument =====');
+    console.log('🔍 [PAGE] Fetching document for shareId:', shareId);
     
     if (!shareId) {
       setError('Invalid share link');
@@ -161,117 +91,142 @@ const fetchSharedDocument = async (skipPasswordCheck = false) => {
       return;
     }
     
-    if (user) {
-      console.log('🔍 [PAGE] User email:', user.email);
-      console.log('🔍 [PAGE] User UID:', user.uid);
+    try {
+      setLoading(true)
+      console.log('🔍 [PAGE] Calling getDocumentByShareId...');
+      
+      const result = await getDocumentByShareId(shareId) as DocumentResponse
+      
+      console.log('🔍 [PAGE] getDocumentByShareId returned:', result);
+      
+      if (!result) {
+        console.log('❌ [PAGE] Result is null - document not found');
+        setError('Document not found or has been removed')
+        return
+      }
+
+      if (isErrorResponse(result)) {
+        console.log('❌ [PAGE] Result is error response:', result);
+        setError(result.error)
+        return
+      }
+
+      if (isSharedDocument(result)) {
+        console.log('✅ [PAGE] Result is valid SharedDocument');
+        setDocument(result)
+
+        // Check if document requires password - but skip if we're already past password screen
+        if (!skipPasswordCheck && result.shareSettings?.requirePassword && result.shareSettings?.password) {
+          console.log('🔒 [PAGE] Document requires password');
+          setRequiresPassword(true)
+          setLoading(false)
+          return
+        }
+
+        // Check access for restricted documents - REMOVED USER VALIDATION
+        if (result.shareSettings?.accessLevel === 'restricted') {
+          console.log('🔒 [PAGE] Document is restricted - checking sharedWith emails');
+          
+          // Get the list of emails that have access
+          const sharedWithEmails = result.shareSettings?.sharedWith?.map(
+            (shared: SharedUser) => shared.email
+          ) || []
+          
+          console.log('🔒 [PAGE] Emails with access:', sharedWithEmails);
+          
+          // For now, just show the file if ANY sharedWith email exists
+          // No user authentication check!
+          if (sharedWithEmails.length > 0) {
+            console.log('✅ [PAGE] Document has sharedWith emails - showing file');
+            await trackShareView(shareId)
+          } else {
+            console.log('❌ [PAGE] No sharedWith emails found');
+            setAccessDenied(true)
+          }
+        } else {
+          console.log('🌐 [PAGE] Document is public, tracking view...');
+          await trackShareView(shareId)
+        }
+      } else {
+        console.log('❌ [PAGE] Result is neither error nor SharedDocument:', result);
+        setError('Invalid document data')
+      }
+
+    } catch (error) {
+      console.error('❌ [PAGE] Error in fetchSharedDocument:');
+      console.error('❌ [PAGE] Full error:', error);
+      setError('Failed to load document')
+    } finally {
+      setLoading(false)
+      console.log('🔍 [PAGE] ===== END fetchSharedDocument =====');
+    }
+  }
+
+  useEffect(() => {
+    console.log('🔍 [PAGE] ===== PAGE MOUNTED =====');
+    console.log('🔍 [PAGE] shareId from params:', shareId);
+    console.log('🔍 [PAGE] shareId type:', typeof shareId);
+    
+    if (!shareId) {
+      setError('Invalid share link');
+      setLoading(false);
+      return;
     }
     
     fetchSharedDocument()
-  }, [shareId, user])
+  }, [shareId]) // Removed user from dependencies
 
-
-  const checkUserAccess = async (doc: SharedDocument) => {
-    console.log('🔍 [ACCESS] ===== START checkUserAccess =====');
-    console.log('🔍 [ACCESS] Current user:', user?.email);
-    console.log('🔍 [ACCESS] Document sharedWith:', doc.shareSettings?.sharedWith);
+  const handlePasswordSubmit = async () => {
+    console.log('🔍 [PASSWORD] Submitting password...');
     
-    if (!user) {
-      console.log('🔍 [ACCESS] User not logged in, redirecting to signup');
-      if (shareId) {
-        router.push(`/signup?redirect=/share/${shareId}`)
+    if (!shareId) {
+      toast.error('Invalid share link');
+      return;
+    }
+    
+    setVerifyingPassword(true);
+    
+    try {
+      console.log('🔍 [PASSWORD] Using shareId:', shareId);
+      
+      const isValid = await verifySharePassword(shareId, password);
+      console.log('🔍 [PASSWORD] Password valid?', isValid);
+      
+      if (isValid) {
+        console.log('✅ [PASSWORD] Password correct, fetching document...');
+        
+        setRequiresPassword(false);
+        setPassword('');
+        
+        const result = await getDocumentByShareId(shareId) as DocumentResponse;
+        
+        if (result && !isErrorResponse(result) && isSharedDocument(result)) {
+          console.log('✅ [PASSWORD] Document fetched after password verification');
+          setDocument(result);
+          toast.success('Access granted');
+        } else {
+          console.error('❌ [PASSWORD] Failed to fetch document after verification');
+          toast.error('Failed to load document');
+        }
       } else {
-        router.push('/signup')
+        console.log('❌ [PASSWORD] Invalid password');
+        toast.error('Invalid password');
+        setPassword('');
       }
-      return
-    }
-
-    setCheckingAccess(true)
-    
-    // Check if user's email is in sharedWith list
-    const hasAccess = doc.shareSettings?.sharedWith?.some(
-      (shared: SharedUser) => shared.email === user.email
-    )
-
-    console.log('🔍 [ACCESS] Has access?', hasAccess);
-
-    if (!hasAccess) {
-      console.log('🔍 [ACCESS] Access denied for user:', user.email);
-      setAccessDenied(true)
-      setCheckingAccess(false)
-      return
-    }
-
-    console.log('✅ [ACCESS] Access granted for user:', user.email);
-    
-    // Track view
-    if (shareId) {
-      await trackShareView(shareId)
-    }
-    setCheckingAccess(false)
-    console.log('🔍 [ACCESS] ===== END checkUserAccess =====');
-  }
-
- const handlePasswordSubmit = async () => {
-  console.log('🔍 [PASSWORD] Submitting password...');
-  
-  if (!shareId) {
-    toast.error('Invalid share link');
-    return;
-  }
-  
-  setVerifyingPassword(true);
-  
-  try {
-    console.log('🔍 [PASSWORD] Using shareId:', shareId);
-    
-    const isValid = await verifySharePassword(shareId, password);
-    console.log('🔍 [PASSWORD] Password valid?', isValid);
-    
-    if (isValid) {
-      console.log('✅ [PASSWORD] Password correct, fetching document...');
-      
-      // Set requiresPassword to false immediately
-      setRequiresPassword(false);
-      
-      // Clear password
-      setPassword('');
-      
-      // Fetch the document again with the new state
-      const result = await getDocumentByShareId(shareId) as DocumentResponse;
-      
-      if (result && !isErrorResponse(result) && isSharedDocument(result)) {
-        console.log('✅ [PASSWORD] Document fetched after password verification');
-        setDocument(result);
-        toast.success('Access granted');
-      } else {
-        console.error('❌ [PASSWORD] Failed to fetch document after verification');
-        toast.error('Failed to load document');
-      }
-    } else {
-      console.log('❌ [PASSWORD] Invalid password');
-      toast.error('Invalid password');
-      setPassword(''); // Clear password field
-    }
-  } catch (error: any) {
-    console.error('❌ [PASSWORD] Error:', error);
-    
-    if (error.message === 'Authentication required to verify password') {
-      toast.error('Please sign in to access this document');
-      router.push(`/signup?redirect=/share/${shareId}`);
-    } else {
+    } catch (error: any) {
+      console.error('❌ [PASSWORD] Error:', error);
       toast.error('Failed to verify password');
+    } finally {
+      setVerifyingPassword(false);
     }
-  } finally {
-    setVerifyingPassword(false);
-  }
-};
+  };
   
   const handleDownload = async () => {
     if (!document) return
     
     try {
       console.log('🔍 [DOWNLOAD] Downloading document:', document.documentName);
-     downloadFile(document.cloudinary.url, document.documentName) 
+      downloadFile(document.cloudinary.url, document.documentName) 
       if (shareId) {
         await trackShareDownload(shareId)
       }
@@ -297,7 +252,7 @@ const fetchSharedDocument = async (skipPasswordCheck = false) => {
     )
   }
 
-  if (loading || checkingAccess) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -334,11 +289,9 @@ const fetchSharedDocument = async (skipPasswordCheck = false) => {
               This document is restricted to specific users.
             </p>
             <p className="text-sm text-muted-foreground mb-6">
-              Your email ({user?.email}) doesn't have access permissions.
+              This document was shared privately and requires access permissions.
             </p>
-            <Button onClick={() => router.push('/dashboard')}>
-              Go to My Dashboard
-            </Button>
+            <Button onClick={() => router.push('/')}>Go to Home</Button>
           </CardContent>
         </Card>
       </div>
@@ -391,120 +344,111 @@ const fetchSharedDocument = async (skipPasswordCheck = false) => {
   if (!document) return null
 
   return (
-  <div className="min-h-screen">
-  {/* Header */}
-  <header className="sticky top-0 z-50">
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center">
-          <Image
-            src={LOGO.MEDORA_LOGO}
-            alt="Medora"
-            width={90}
-            height={10}
-            className="w-20 object-contain"
-            priority
-          />
-        </Link>
-
-        {!user ? (
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => router.push('/sign-in')} size="sm">
-              Sign in
-            </Button>
-            <Button onClick={() => router.push('/sign-up')} size="sm">
-              Sign up
-            </Button>
-          </div>
-        ) : (
-          <Button variant="outline" onClick={() => router.push('/dashboard')} size="sm">
-            Dashboard
-          </Button>
-        )}
-      </div>
-    </div>
-  </header>
-
-  {/* Main Content */}
-  <main className="max-w-4xl mx-auto px-4 py-16">
-    <div className="space-y-4">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileText className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-xl font-medium">{document.documentName}</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{document.shareSettings?.viewCount || 0} views</span>
-          <span>•</span>
-          <span>{formatDate(document.uploadedAt)}</span>
-        </div>
-      </div>
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center">
+              <Image
+                src={LOGO.MEDORA_LOGO}
+                alt="Medora"
+                width={90}
+                height={10}
+                className="w-20 object-contain"
+                priority
+              />
+            </Link>
 
-      {/* Image Card */}
-      <div className="relative group">
-        <div className="relative aspect-[16/9] rounded-lg overflow-hidden border">
-          <Image
-            src={document.cloudinary.url}
-            alt={document.documentName}
-            fill
-            className="object-contain"
-            priority
-          />
-          
-          {/* Download button - only show if allowed */}
-          {(document.shareSettings?.accessLevel === 'download' || document.shareSettings?.accessLevel === 'edit') && (
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleDownload}
-              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {!user ? (
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" onClick={() => router.push('/sign-in')} size="sm">
+                  Sign in
+                </Button>
+                <Button onClick={() => router.push('/sign-up')} size="sm">
+                  Sign up
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={() => router.push('/dashboard')} size="sm">
+                Dashboard
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-16">
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <h1 className="text-xl font-medium">{document.documentName}</h1>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>{document.shareSettings?.viewCount || 0} views</span>
+              <span>•</span>
+              <span>{formatDate(document.uploadedAt)}</span>
+            </div>
+          </div>
+
+          {/* Image Card */}
+          <div className="relative group">
+            <div className="relative aspect-[16/9] rounded-lg overflow-hidden border bg-muted/20">
+              <Image
+                src={document.cloudinary.url}
+                alt={document.documentName}
+                fill
+                className="object-contain"
+                priority
+                unoptimized={document.cloudinary.url?.includes('cloudinary')}
+              />
+              
+              {/* Download button - only show if allowed */}
+              {(document.shareSettings?.accessLevel === 'download' || document.shareSettings?.accessLevel === 'edit') && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={handleDownload}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Subtle metadata */}
+            <div className="absolute bottom-3 left-3 flex gap-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+              <span>{document.cloudinary.format?.toUpperCase()}</span>
+              <span>•</span>
+              <span>{formatBytes(document.cloudinary.bytes)}</span>
+            </div>
+          </div>
+
+          {/* Shared by line */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">
+                {document.userEmail?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <span>
+              <span className="text-foreground">{document.userEmail || 'Medora user'}</span> shared this file
+            </span>
+          </div>
+
+          {/* Restricted access message - shows that it's shared privately */}
+          {document.shareSettings?.accessLevel === 'restricted' && (
+            <div className="text-sm text-muted-foreground">
+              <Lock className="h-3 w-3 inline mr-1" />
+              Shared privately with specific users
+            </div>
           )}
         </div>
-
-        {/* Subtle metadata */}
-        <div className="absolute bottom-3 left-3 flex gap-2 text-xs text-muted-foreground">
-          <span>{document.cloudinary.format?.toUpperCase()}</span>
-          <span>•</span>
-          <span>{formatBytes(document.cloudinary.bytes)}</span>
-        </div>
-      </div>
-
-      {/* Shared by line */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-xs font-medium">
-            {document.userEmail?.charAt(0).toUpperCase() || 'U'}
-          </span>
-        </div>
-        <span>
-          <span className="text-foreground">{document.userEmail || 'Medora user'}</span> shared this file
-        </span>
-      </div>
-
-      {/* Sign up prompt - minimal */}
-      {!user && (
-        <div className="text-sm text-muted-foreground">
-          <Button variant="link" onClick={() => router.push('/signup')} className="px-0 h-auto">
-            Sign up
-          </Button>
-          <span> to save to your account</span>
-        </div>
-      )}
-
-      {/* Restricted access message - minimal */}
-      {document.shareSettings?.accessLevel === 'restricted' && user && (
-        <div className="text-sm text-muted-foreground">
-          <Lock className="h-3 w-3 inline mr-1" />
-          Shared privately with you
-        </div>
-      )}
+      </main>
     </div>
-  </main>
-</div>
   )
 }
 
