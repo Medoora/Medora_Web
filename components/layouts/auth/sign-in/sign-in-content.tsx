@@ -420,7 +420,7 @@ const SignInContent = () => {
         )}
       </Button>
 
-      <div className="text-center">
+      <div className="text-center mt-2">
         <p className="">
           Don't have an account?{" "}
           <Link href="/sign-up">

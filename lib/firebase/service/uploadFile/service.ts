@@ -219,124 +219,50 @@ export const getDocumentById = async (documentId: string) => {
 };
 
 // Get document by share ID (public access)
-export const getDocumentByShareId = async (shareId: string) => {
-  console.log('🔍 [SERVICE] ===== START getDocumentByShareId =====');
-  console.log('🔍 [SERVICE] Input shareId:', shareId);
-  
+/* export const getDocumentByShareId = async (shareId: string) => {
   try {
-    // Get from shares collection (publicly readable)
-    console.log('🔍 [SERVICE] Getting share document from shares collection...');
+    console.log('getDocumentByShareId called with:', shareId);
+    
     const shareDocRef = doc(db, 'shares', shareId);
     const shareDocSnap = await getDoc(shareDocRef);
     
-    console.log('🔍 [SERVICE] Share document exists?', shareDocSnap.exists());
-    
     if (!shareDocSnap.exists()) {
-      console.log('❌ [SERVICE] No share document found with ID:', shareId);
+      console.log('Share document not found');
       return null;
     }
     
-    const shareData = shareDocSnap.data();
-    console.log('✅ [SERVICE] Share document found:', {
-      fileId: shareData.fileId,
-      documentName: shareData.documentName,
-      accessLevel: shareData.accessLevel,
-      requirePassword: shareData.requirePassword
-    });
+    const data = shareDocSnap.data();
+    console.log('Raw share document data:', data);
     
-    // Check if share link has expired
-    if (shareData.expiresAt) {
-      const expiresAt = shareData.expiresAt.toDate();
-      const now = new Date();
-      if (expiresAt < now) {
-        console.log('⏰ [SERVICE] Share link has expired');
-        return { error: 'Share link has expired', code: 'EXPIRED' };
-      }
-    }
-    
-    // For restricted access or password protected, get full details from original
-    if (shareData.accessLevel === 'restricted' || shareData.requirePassword) {
-      try {
-        const originalDocRef = doc(db, 'documents', shareData.fileId);
-        const originalDocSnap = await getDoc(originalDocRef);
-        
-        if (originalDocSnap.exists()) {
-          const originalData = originalDocSnap.data();
-          console.log('✅ [SERVICE] Original document found with access level:', originalData.shareSettings?.accessLevel);
-          
-          // Use the access level from shares collection (which is now synced)
-          return {
-            id: shareData.fileId,
-            documentName: shareData.documentName,
-            description: shareData.description,
-            userEmail: shareData.userEmail,
-            uploadedAt: shareData.uploadedAt,
-            cloudinary: {
-              ...shareData.cloudinary,
-              publicId: originalData.cloudinary?.publicId || ''
-            },
-            shareSettings: {
-              accessLevel: shareData.accessLevel, // Use from shares collection
-              requirePassword: shareData.requirePassword,
-              password: shareData.requirePassword, // Boolean flag
-              viewCount: originalData.shareSettings?.viewCount || 0,
-              downloadCount: originalData.shareSettings?.downloadCount || 0,
-              sharedWith: originalData.shareSettings?.sharedWith || [],
-              expiresAt: shareData.expiresAt,
-              isPublic: shareData.accessLevel !== 'restricted',
-              shareId: shareId,
-              shareableLink: shareData.shareableLink,
-              createdAt: shareData.createdAt,
-              updatedAt: shareData.updatedAt
-            },
-            category: shareData.category,
-            categoryLabel: shareData.categoryLabel
-          };
-        }
-      } catch (error) {
-        console.log('⚠️ [SERVICE] Could not fetch original document');
-      }
-    }
-    
-    // For public access
-    console.log('🔍 [SERVICE] Returning public share data with access level:', shareData.accessLevel);
-    
-    const sharedWithUsers = (shareData.sharedWith || []).map((email: string) => ({
-      email,
-      accessLevel: 'view',
-      sharedAt: Timestamp.now()
-    }));
-    
+    // Return the document with proper structure
     return {
-      id: shareData.fileId,
-      documentName: shareData.documentName,
-      description: shareData.description,
-      userEmail: shareData.userEmail,
-      uploadedAt: shareData.uploadedAt,
-      cloudinary: shareData.cloudinary,
+      id: data.fileId,
+      documentName: data.documentName,
+      description: data.description,
+      userEmail: data.userEmail,
+      uploadedAt: data.uploadedAt,
+      cloudinary: data.cloudinary,
+      category: data.category,
+      categoryLabel: data.categoryLabel,
       shareSettings: {
-        accessLevel: shareData.accessLevel, // This should now reflect updates
-        requirePassword: shareData.requirePassword,
-        password: shareData.requirePassword,
-        viewCount: 0,
-        downloadCount: 0,
-        sharedWith: sharedWithUsers,
-        expiresAt: shareData.expiresAt,
-        isPublic: shareData.accessLevel !== 'restricted',
-        shareId: shareId,
-        shareableLink: shareData.shareableLink,
-        createdAt: shareData.createdAt,
-        updatedAt: shareData.updatedAt
-      },
-      category: shareData.category,
-      categoryLabel: shareData.categoryLabel
+        shareId: data.shareId,
+        shareableLink: data.shareableLink,
+        accessLevel: data.accessLevel,
+        expiresAt: data.expiresAt,
+        requirePassword: data.requirePassword || false,
+        password: data.hasPassword ? 'hashed' : null,
+        sharedWith: data.sharedWith || [], // This should be your array of emails
+        viewCount: data.viewCount || 0,
+        downloadCount: data.downloadCount || 0,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt || data.createdAt,
+      }
     };
-    
   } catch (error) {
-    console.error('❌ [SERVICE] Error in getDocumentByShareId:', error);
+    console.error('Error in getDocumentByShareId:', error);
     throw error;
   }
-};
+}; */
 
 // Update document metadata
 export const updateDocumentMetadata = async (
@@ -404,7 +330,8 @@ export const getStarredDocuments = async (userId: string) => {
 // SHARING FUNCTIONS
 
 // Create share link for document
-// Add this to your service file
+// In your service file - COMPLETE REWRITE of these functions
+
 export const createShareLink = async (
   fileId: string,
   options: {
@@ -419,7 +346,6 @@ export const createShareLink = async (
     const shareId = generateShareId();
     const shareableLink = `${window.location.origin}/share/${shareId}`;
     
-    // Get the original document to copy needed data
     const docRef = doc(db, 'documents', fileId);
     const docSnap = await getDoc(docRef);
     
@@ -429,7 +355,15 @@ export const createShareLink = async (
     
     const documentData = docSnap.data();
     
-    // 1. Update the original document with share settings
+    // CRITICAL: Store as objects with email property
+    const sharedWithData = (options.sharedWith || []).map(user => ({
+      email: user.email,
+      accessLevel: user.accessLevel,
+      sharedAt: Timestamp.now()
+    }));
+    
+    console.log('Saving sharedWith as:', sharedWithData);
+    
     const shareSettings = {
       shareId,
       shareableLink,
@@ -437,10 +371,7 @@ export const createShareLink = async (
       expiresAt: options.expiresAt ? Timestamp.fromDate(options.expiresAt) : null,
       password: options.requirePassword ? options.password : null,
       requirePassword: options.requirePassword || false,
-      sharedWith: options.sharedWith?.map(user => ({
-        ...user,
-        sharedAt: Timestamp.now()
-      })) || [],
+      sharedWith: sharedWithData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       viewCount: 0,
@@ -453,7 +384,7 @@ export const createShareLink = async (
       updatedAt: Timestamp.now()
     });
     
-    // 2. Create a public document in 'shares' collection
+    // Store in shares collection with same structure
     const sharesCollection = collection(db, 'shares');
     await setDoc(doc(sharesCollection, shareId), {
       fileId,
@@ -463,104 +394,136 @@ export const createShareLink = async (
       expiresAt: options.expiresAt ? Timestamp.fromDate(options.expiresAt) : null,
       requirePassword: options.requirePassword || false,
       hasPassword: !!options.password,
-      sharedWith: options.sharedWith?.map(u => u.email) || [],
+      sharedWith: sharedWithData, // Same object structure
       createdAt: Timestamp.now(),
-      
-      // Copy basic document info for display
       documentName: documentData.documentName,
       description: documentData.description,
       userEmail: documentData.userEmail,
       uploadedAt: documentData.uploadedAt,
-      cloudinary: {
-        url: documentData.cloudinary.url,
-        thumbnailUrl: documentData.cloudinary.thumbnailUrl,
-        format: documentData.cloudinary.format,
-        bytes: documentData.cloudinary.bytes
-      },
+      cloudinary: documentData.cloudinary,
       category: documentData.category,
       categoryLabel: documentData.categoryLabel
     });
     
-    return shareableLink;
+    return {
+      shareableLink,
+      shareId
+    };
   } catch (error) {
     console.error('Error creating share link:', error);
     throw error;
   }
 };
-// Update share settings
-// Update share settings
-export const updateShareSettings = async (
-  documentId: string,
-  updates: Partial<ShareSettings>
-) => {
+
+export const getDocumentByShareId = async (shareId: string) => {
   try {
-    const docRef = doc(db, 'documents', documentId);
-    const docSnap = await getDoc(docRef);
+    console.log('🔍 Fetching share document:', shareId);
     
-    if (!docSnap.exists()) {
-      throw new Error('Document not found');
+    const shareDocRef = doc(db, 'shares', shareId);
+    const shareDocSnap = await getDoc(shareDocRef);
+    
+    if (!shareDocSnap.exists()) {
+      console.log('❌ Share document not found');
+      return null;
     }
     
-    const data = docSnap.data();
-    const shareId = data.shareSettings?.shareId;
+    const data = shareDocSnap.data();
+    console.log('📄 Raw data from Firestore:', data);
+    console.log('📄 Raw sharedWith:', data.sharedWith);
     
-    // Update the original document
-if (updates.requirePassword === false) {
-  await updateDoc(docRef, {
-    "shareSettings.requirePassword": false,
-    "shareSettings.password": deleteField(),
-    "shareSettings.updatedAt": serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-} else {
-  await updateDoc(docRef, {
-    ...Object.keys(updates).reduce((acc, key) => {
-      acc[`shareSettings.${key}`] = updates[key as keyof ShareSettings];
-      return acc;
-    }, {} as any),
-    "shareSettings.updatedAt": serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-}
-    // Also update the shares collection if shareId exists
-    if (shareId) {
-      const shareDocRef = doc(db, 'shares', shareId);
-      const shareDocSnap = await getDoc(shareDocRef);
-      
-      if (shareDocSnap.exists()) {
-        // Update relevant fields in shares collection
-        const shareUpdates: any = {
-          updatedAt: serverTimestamp()
-        };
-        
-        // Update access level if it changed
-        if (updates.accessLevel) {
-          shareUpdates.accessLevel = updates.accessLevel;
+    // Normalize sharedWith to always be an array of objects with email property
+    let normalizedSharedWith = [];
+    
+    if (data.sharedWith && Array.isArray(data.sharedWith)) {
+      for (const item of data.sharedWith) {
+        if (typeof item === 'string') {
+          // Convert string to object
+          normalizedSharedWith.push({
+            email: item,
+            accessLevel: 'view',
+            sharedAt: Timestamp.now()
+          });
+        } else if (item && typeof item === 'object' && item.email) {
+          // Already an object
+          normalizedSharedWith.push(item);
         }
-        
-        // Update password requirement
-if (updates.requirePassword === false) {
-  shareUpdates.requirePassword = false;
-  shareUpdates.hasPassword = false;
-} else if (updates.requirePassword === true) {
-  shareUpdates.requirePassword = true;
-  shareUpdates.hasPassword = true;
-}
-        
-        // Update expiry
-        if (updates.expiresAt !== undefined) {
-          shareUpdates.expiresAt = updates.expiresAt;
-        }
-        
-        // Update sharedWith emails list
-        if (updates.sharedWith) {
-          shareUpdates.sharedWith = updates.sharedWith.map(u => u.email);
-        }
-        
-        await updateDoc(shareDocRef, shareUpdates);
       }
     }
     
+    console.log('📄 Normalized sharedWith:', normalizedSharedWith);
+    
+    return {
+      id: data.fileId,
+      documentName: data.documentName,
+      description: data.description,
+      userEmail: data.userEmail,
+      uploadedAt: data.uploadedAt,
+      cloudinary: data.cloudinary,
+      category: data.category,
+      categoryLabel: data.categoryLabel,
+      shareSettings: {
+        shareId: data.shareId,
+        shareableLink: data.shareableLink,
+        accessLevel: data.accessLevel,
+        expiresAt: data.expiresAt,
+        requirePassword: data.requirePassword || false,
+        password: data.hasPassword ? 'hashed' : null,
+        sharedWith: normalizedSharedWith,
+        viewCount: data.viewCount || 0,
+        downloadCount: data.downloadCount || 0,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt || data.createdAt,
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching shared document:', error);
+    throw error;
+  }
+};
+// Update share settings
+export const updateShareSettings = async (
+  fileId: string,
+  settings: {
+    accessLevel: 'view' | 'download' | 'edit' | 'restricted';
+    requirePassword: boolean;
+    password?: string | null;
+    expiresAt?: Timestamp | null;
+    sharedWith: SharedUser[];
+    updatedAt: Timestamp;
+  }
+) => {
+  try {
+    const docRef = doc(db, 'documents', fileId);
+    
+    // Ensure sharedWith is stored as objects
+    const sharedWithData = settings.sharedWith.map(user => ({
+      email: user.email,
+      accessLevel: user.accessLevel,
+      sharedAt: user.sharedAt || Timestamp.now()
+    }));
+    
+    await updateDoc(docRef, {
+      'shareSettings.accessLevel': settings.accessLevel,
+      'shareSettings.requirePassword': settings.requirePassword,
+      'shareSettings.password': settings.password || null,
+      'shareSettings.expiresAt': settings.expiresAt || null,
+      'shareSettings.sharedWith': sharedWithData,
+      'shareSettings.updatedAt': settings.updatedAt,
+      updatedAt: settings.updatedAt
+    });
+    
+    // Also update the shares collection
+    const shareId = (await getDoc(docRef)).data()?.shareSettings?.shareId;
+    if (shareId) {
+      const shareDocRef = doc(db, 'shares', shareId);
+      await updateDoc(shareDocRef, {
+        accessLevel: settings.accessLevel,
+        requirePassword: settings.requirePassword,
+        hasPassword: !!settings.password,
+        sharedWith: sharedWithData,
+        updatedAt: settings.updatedAt
+      });
+    }
   } catch (error) {
     console.error('Error updating share settings:', error);
     throw error;

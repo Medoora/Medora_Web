@@ -69,7 +69,6 @@ export function GridViewCard({
   }
 
   const handleShareClick = () => {
-   
     // Also call the parent onShare if needed for tracking
     onShare(file.id)
   }
@@ -79,10 +78,14 @@ export function GridViewCard({
   }
 
   const handleShareSuccess = () => {
-    // You can refresh the file data here if needed
-    // For example, you might want to update the local file state
-    // with new share settings
-    setShareDialog(false)
+    // REMOVED: setShareDialog(false) - Don't close the modal!
+    // Just refresh the file data or update local state if needed
+    // For example, you might want to update the file's share settings
+    // But DO NOT close the modal here
+    
+    // Optional: Refresh the file data from parent
+    // You can pass a callback to refresh the file list
+    // But keep the modal open so user can copy the link
   }
 
   return (
